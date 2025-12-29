@@ -382,18 +382,11 @@ class AuthManager: ObservableObject {
             // 获取当前会话
             let session = try await supabase.auth.session
 
-            if session.user != nil {
-                // 会话有效，获取用户信息
-                print("✅ 会话有效，用户ID: \(session.user.id)")
-                await fetchCurrentUser()
-                isAuthenticated = true
-                needsPasswordSetup = false
-            } else {
-                // 无有效会话
-                print("⚠️ 无有效会话")
-                isAuthenticated = false
-                currentUser = nil
-            }
+            // 会话有效，获取用户信息
+            print("✅ 会话有效，用户ID: \(session.user.id)")
+            await fetchCurrentUser()
+            isAuthenticated = true
+            needsPasswordSetup = false
         } catch {
             // 会话无效或已过期
             print("❌ 会话检查失败: \(error.localizedDescription)")

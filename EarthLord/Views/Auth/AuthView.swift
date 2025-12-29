@@ -96,13 +96,13 @@ struct AuthView: View {
         .sheet(isPresented: $showForgotPassword) {
             forgotPasswordSheet
         }
-        .onChange(of: authManager.otpVerified) { _, isVerified in
+        .onChange(of: authManager.otpVerified) { isVerified in
             if isVerified && selectedTab == .register {
                 // 注册验证成功，进入设置密码步骤
                 registerStep = 3
             }
         }
-        .onChange(of: authManager.errorMessage) { _, error in
+        .onChange(of: authManager.errorMessage) { error in
             if let error = error {
                 showToastMessage(error)
             }
@@ -800,7 +800,7 @@ struct OTPInputField: View {
                 .keyboardType(.numberPad)
                 .foregroundColor(.clear)
                 .accentColor(.clear)
-                .onChange(of: otp) { _, newValue in
+                .onChange(of: otp) { newValue in
                     otp = String(newValue.prefix(6))
                 }
         )
