@@ -1,21 +1,10 @@
 import SwiftUI
 
-/// 根视图：控制启动页与主界面的切换
+/// 根视图：主界面的根容器
+/// 注意：启动页逻辑已移至 EarthLordApp.swift
 struct RootView: View {
-    /// 启动页是否完成
-    @State private var splashFinished = false
-
     var body: some View {
-        ZStack {
-            if splashFinished {
-                MainTabView()
-                    .transition(.opacity)
-            } else {
-                SplashView(isFinished: $splashFinished)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.3), value: splashFinished)
+        MainTabView()
     }
 }
 

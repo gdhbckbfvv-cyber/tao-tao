@@ -1,21 +1,20 @@
 import SwiftUI
 
-/// 启动页视图
+/// 启动画面
+/// 显示 Logo 和加载动画，同时检查用户会话状态
 struct SplashView: View {
-    /// 是否显示加载动画
-    @State private var isAnimating = false
+    @EnvironmentObject var authManager: AuthManager
 
-    /// 加载进度文字
+    /// 加载状态文字
     @State private var loadingText = "正在初始化..."
 
-    /// Logo 缩放动画
+    /// Logo 动画状态
     @State private var logoScale: CGFloat = 0.8
-
-    /// Logo 透明度
     @State private var logoOpacity: Double = 0
+    @State private var isAnimating = false
 
-    /// 是否完成加载
-    @Binding var isFinished: Bool
+    /// 是否完成检查
+    @State private var checkCompleted = false
 
     var body: some View {
         ZStack {
@@ -31,10 +30,10 @@ struct SplashView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 30) {
+            VStack(spacing: 40) {
                 Spacer()
 
-                // Logo
+                // Logo 区域
                 ZStack {
                     // 外圈光晕（呼吸动画）
                     Circle()
@@ -120,9 +119,12 @@ struct SplashView: View {
                 .padding(.bottom, 60)
             }
         }
-        .onAppear {
+        .task {
+            // 启动动画
             startAnimations()
-            simulateLoading()
+
+            // 检查会话状态
+            await checkSession()
         }
     }
 
@@ -141,27 +143,25 @@ struct SplashView: View {
         }
     }
 
-    // MARK: - 模拟加载
+    // MARK: - 检查会话
 
-    private func simulateLoading() {
-        // 模拟加载过程
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            loadingText = "正在加载资源..."
-        }
+    private func checkSession() async {
+        // 模拟检查过程的文字变化
+        loadingText = "正在检查登录状态..."
+        await Task.sleep(500_000_000) // 0.5秒
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            loadingText = "准备就绪"
-        }
+        // 调用 AuthManager 检查会话
+        await authManager.checkSession()
 
-        // 完成加载，进入主界面
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                isFinished = true
-            }
-        }
+        loadingText = "准备就绪"
+        await Task.sleep(500_000_000) // 0.5秒
+
+        // 标记完成
+        checkCompleted = true
     }
 }
 
 #Preview {
-    SplashView(isFinished: .constant(false))
+    SplashView()
+        .environmentObject(AuthManager(supabase: SupabaseConfig.shared))
 }
