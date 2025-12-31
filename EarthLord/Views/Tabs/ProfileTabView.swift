@@ -44,7 +44,7 @@ struct ProfileTabView: View {
                         }
 
                         // 用户名
-                        Text(authManager.currentUser?.username ?? "幸存者")
+                        Text(authManager.currentUser?.username ?? "幸存者".localized)
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
@@ -58,7 +58,7 @@ struct ProfileTabView: View {
 
                         // 注册时间
                         if let createdAt = authManager.currentUser?.createdAt {
-                            Text("加入时间: \(formattedDate(createdAt))")
+                            Text(String(format: "加入时间: %@".localized, formattedDate(createdAt)))
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
@@ -67,9 +67,9 @@ struct ProfileTabView: View {
 
                     // 用户统计
                     HStack(spacing: 20) {
-                        StatCard(title: "领地", value: "0", icon: "flag.fill")
-                        StatCard(title: "资源", value: "0", icon: "cube.fill")
-                        StatCard(title: "探索", value: "0", icon: "location.fill")
+                        StatCard(title: "领地".localized, value: "0", icon: "flag.fill")
+                        StatCard(title: "资源".localized, value: "0", icon: "cube.fill")
+                        StatCard(title: "探索".localized, value: "0", icon: "location.fill")
                     }
                     .padding(.horizontal)
 
@@ -77,7 +77,7 @@ struct ProfileTabView: View {
                     VStack(spacing: 0) {
                         SettingRow(
                             icon: "person.circle",
-                            title: "编辑资料",
+                            title: "编辑资料".localized,
                             action: {
                                 // TODO: 实现编辑资料功能
                             }
@@ -89,7 +89,7 @@ struct ProfileTabView: View {
 
                         SettingRow(
                             icon: "bell.fill",
-                            title: "通知设置",
+                            title: "通知设置".localized,
                             action: {
                                 // TODO: 实现通知设置功能
                             }
@@ -101,7 +101,7 @@ struct ProfileTabView: View {
 
                         SettingRow(
                             icon: "lock.fill",
-                            title: "隐私与安全",
+                            title: "隐私与安全".localized,
                             action: {
                                 // TODO: 实现隐私设置功能
                             }
@@ -113,7 +113,7 @@ struct ProfileTabView: View {
 
                         SettingRow(
                             icon: "questionmark.circle",
-                            title: "帮助与反馈",
+                            title: "帮助与反馈".localized,
                             action: {
                                 // TODO: 实现帮助功能
                             }
@@ -133,7 +133,7 @@ struct ProfileTabView: View {
                                     .foregroundColor(ApocalypseTheme.primary)
                                     .frame(width: 30)
 
-                                Text("语言设置")
+                                Text("语言设置".localized)
                                     .foregroundColor(.white)
 
                                 Spacer()
@@ -166,7 +166,7 @@ struct ProfileTabView: View {
                             } else {
                                 Image(systemName: "rectangle.portrait.and.arrow.right")
                             }
-                            Text(isLoggingOut ? "退出中..." : "退出登录")
+                            Text(isLoggingOut ? "退出中...".localized : "退出登录".localized)
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -192,7 +192,7 @@ struct ProfileTabView: View {
                             } else {
                                 Image(systemName: "trash.fill")
                             }
-                            Text(isDeleting ? "删除中..." : "删除账户")
+                            Text(isDeleting ? "删除中...".localized : "删除账户".localized)
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -207,7 +207,7 @@ struct ProfileTabView: View {
                     .padding(.top, 10)
 
                     // 版本信息
-                    Text("地球新主 v1.0.0")
+                    Text("地球新主 v1.0.0".localized)
                         .font(.caption2)
                         .foregroundColor(.gray)
                         .padding(.top, 20)
@@ -215,30 +215,30 @@ struct ProfileTabView: View {
                 }
             }
             .background(ApocalypseTheme.background)
-            .navigationTitle("个人中心")
+            .navigationTitle("个人中心".localized)
             .navigationBarTitleDisplayMode(.inline)
             .confirmationDialog(
-                "确定要退出登录吗？",
+                "确定要退出登录吗？".localized,
                 isPresented: $showLogoutConfirm,
                 titleVisibility: .visible
             ) {
-                Button("退出登录", role: .destructive) {
+                Button("退出登录".localized, role: .destructive) {
                     Task {
                         await performLogout()
                     }
                 }
-                Button("取消", role: .cancel) {}
+                Button("取消".localized, role: .cancel) {}
             }
-            .alert("⚠️ 警告", isPresented: $showDeleteAccountAlert) {
-                Button("取消", role: .cancel) {
+            .alert("⚠️ 警告".localized, isPresented: $showDeleteAccountAlert) {
+                Button("取消".localized, role: .cancel) {
                     print("📋 用户取消了删除账户操作")
                 }
-                Button("继续", role: .destructive) {
+                Button("继续".localized, role: .destructive) {
                     print("📋 用户确认要继续删除账户")
                     showDeleteConfirmDialog = true
                 }
             } message: {
-                Text("删除账户后，您的所有数据将被永久删除且无法恢复！\n\n这包括：\n• 个人资料\n• 游戏进度\n• 所有记录\n\n您确定要继续吗？")
+                Text("删除账户后，您的所有数据将被永久删除且无法恢复！\n\n这包括：\n• 个人资料\n• 游戏进度\n• 所有记录\n\n您确定要继续吗？".localized)
             }
             .sheet(isPresented: $showDeleteConfirmDialog) {
                 DeleteAccountConfirmView(
@@ -360,7 +360,9 @@ struct ProfileTabView: View {
 
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy年MM月dd日"
+        formatter.locale = languageManager.currentLocale
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
         return formatter.string(from: date)
     }
 }
@@ -371,6 +373,11 @@ struct DeleteAccountConfirmView: View {
     @Binding var isPresented: Bool
     @Binding var deleteConfirmText: String
     let onConfirm: () -> Void
+
+    // 获取当前语言的确认文本
+    private var expectedConfirmText: String {
+        "删除".localized
+    }
 
     var body: some View {
         NavigationView {
@@ -388,12 +395,12 @@ struct DeleteAccountConfirmView: View {
 
                     // 警告文本
                     VStack(spacing: 15) {
-                        Text("最后确认")
+                        Text("最后确认".localized)
                             .font(.title)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
 
-                        Text("此操作将永久删除您的账户\n所有数据将无法恢复")
+                        Text("此操作将永久删除您的账户\n所有数据将无法恢复".localized)
                             .font(.body)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
@@ -401,7 +408,7 @@ struct DeleteAccountConfirmView: View {
 
                     // 说明文本
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("请在下方输入 \"删除\" 以确认：")
+                        Text("请在下方输入 \"删除\" 以确认：".localized)
                             .font(.subheadline)
                             .foregroundColor(.white)
 
@@ -411,7 +418,7 @@ struct DeleteAccountConfirmView: View {
                             .padding()
                             .background(Color.white.opacity(0.1))
                             .cornerRadius(10)
-                            .autocapitalization(.none)
+                            .autocapitalization(.allCharacters)
                             .disableAutocorrection(true)
                     }
                     .padding(.horizontal, 30)
@@ -419,32 +426,32 @@ struct DeleteAccountConfirmView: View {
                     // 确认按钮
                     Button(action: {
                         print("📋 用户输入了确认文本: '\(deleteConfirmText)'")
-                        if deleteConfirmText == "删除" {
+                        if deleteConfirmText == expectedConfirmText {
                             print("✅ 确认文本匹配，执行删除")
                             onConfirm()
                         } else {
-                            print("❌ 确认文本不匹配")
+                            print("❌ 确认文本不匹配 (期望: '\(expectedConfirmText)')")
                         }
                     }) {
-                        Text("确认删除账户")
+                        Text("确认删除账户".localized)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(deleteConfirmText == "删除" ? Color.red : Color.gray)
+                            .background(deleteConfirmText == expectedConfirmText ? Color.red : Color.gray)
                             .cornerRadius(12)
                     }
-                    .disabled(deleteConfirmText != "删除")
+                    .disabled(deleteConfirmText != expectedConfirmText)
                     .padding(.horizontal, 30)
 
                     Spacer()
                 }
             }
-            .navigationTitle("删除账户")
+            .navigationTitle("删除账户".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button("取消".localized) {
                         print("📋 用户取消了删除账户确认")
                         deleteConfirmText = ""
                         isPresented = false
@@ -575,11 +582,11 @@ struct LanguageSelectionView: View {
                     .padding()
                 }
             }
-            .navigationTitle("语言设置")
+            .navigationTitle("语言设置".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("完成") {
+                    Button("完成".localized) {
                         isPresented = false
                     }
                     .foregroundColor(ApocalypseTheme.primary)

@@ -67,6 +67,7 @@ class AuthManager: ObservableObject {
         if let session = session {
             print("   用户 ID: \(session.user.id)")
             print("   邮箱: \(session.user.email ?? "无")")
+            print("   会话是否过期: \(session.isExpired)")
         }
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
@@ -74,6 +75,16 @@ class AuthManager: ObservableObject {
         case .signedIn:
             // 用户登录
             print("✅ 用户登录成功")
+
+            // 检查 session 是否过期（新行为要求）
+            if let session = session, session.isExpired {
+                print("⚠️ 会话已过期，触发登出")
+                Task {
+                    await signOut()
+                }
+                return
+            }
+
             Task {
                 await fetchCurrentUser()
                 // 只有在不需要设置密码时才标记为已认证

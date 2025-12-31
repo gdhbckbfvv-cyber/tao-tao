@@ -14,6 +14,9 @@ struct EarthLordApp: App {
         supabase: SupabaseConfig.shared
     )
 
+    /// 语言管理器
+    @ObservedObject var languageManager = LanguageManager.shared
+
     /// 是否显示启动画面
     @State private var showSplash = true
 
@@ -52,6 +55,8 @@ struct EarthLordApp: App {
                         }
                 }
             }
+            .environment(\.locale, languageManager.currentLocale)
+            .id(languageManager.currentLocale.identifier)
             .onOpenURL { url in
                 // 处理 Google Sign-In 的 URL 回调
                 print("📱 收到 URL Scheme 回调: \(url.absoluteString)")

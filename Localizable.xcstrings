@@ -15,6 +15,7 @@
       }
     },
     "⚠️ 警告" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -55,6 +56,7 @@
       }
     },
     "个人中心" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -85,6 +87,7 @@
       }
     },
     "最后确认" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -94,7 +97,19 @@
         }
       }
     },
+    "删除" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DELETE"
+          }
+        }
+      }
+    },
     "删除中..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -105,6 +120,7 @@
       }
     },
     "删除账户" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -115,6 +131,7 @@
       }
     },
     "删除账户后，您的所有数据将被永久删除且无法恢复！\n\n这包括：\n• 个人资料\n• 游戏进度\n• 所有记录\n\n您确定要继续吗？" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -125,6 +142,7 @@
       }
     },
     "加入时间: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -185,6 +203,7 @@
       }
     },
     "地球新主 v1.0.0" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -195,7 +214,15 @@
       }
     },
     "完成" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
     },
     "完成注册" : {
       "localizations" : {
@@ -203,6 +230,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Complete Registration"
+          }
+        }
+      }
+    },
+    "帮助与反馈" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help & Feedback"
+          }
+        }
+      }
+    },
+    "幸存者" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Survivor"
           }
         }
       }
@@ -243,6 +292,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recover Password"
+          }
+        }
+      }
+    },
+    "探索" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore"
           }
         }
       }
@@ -288,6 +348,7 @@
       }
     },
     "此操作将永久删除您的账户\n所有数据将无法恢复" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -338,6 +399,7 @@
       }
     },
     "确定要退出登录吗？" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -348,6 +410,7 @@
       }
     },
     "确认删除账户" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -368,11 +431,23 @@
       }
     },
     "继续" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Continue"
+          }
+        }
+      }
+    },
+    "编辑资料" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Profile"
           }
         }
       }
@@ -398,6 +473,7 @@
       }
     },
     "语言设置" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -408,6 +484,7 @@
       }
     },
     "请在下方输入 \"删除\" 以确认：" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -423,6 +500,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Debug Logs"
+          }
+        }
+      }
+    },
+    "资源" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resources"
           }
         }
       }
@@ -458,6 +546,7 @@
       }
     },
     "退出中..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -468,11 +557,23 @@
       }
     },
     "退出登录" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sign Out"
+          }
+        }
+      }
+    },
+    "通知设置" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications"
           }
         }
       }
@@ -493,6 +594,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reset Password"
+          }
+        }
+      }
+    },
+    "隐私与安全" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy & Security"
           }
         }
       }
