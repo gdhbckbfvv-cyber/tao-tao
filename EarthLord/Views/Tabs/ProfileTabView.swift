@@ -3,6 +3,7 @@ import Supabase
 
 struct ProfileTabView: View {
     @EnvironmentObject var authManager: AuthManager
+    @ObservedObject var languageManager = LanguageManager.shared
     @State private var showLogoutConfirm = false
     @State private var showErrorToast = false
     @State private var isLoggingOut = false
@@ -12,6 +13,9 @@ struct ProfileTabView: View {
     @State private var showDeleteConfirmDialog = false
     @State private var deleteConfirmText = ""
     @State private var isDeleting = false
+
+    // 语言切换相关状态
+    @State private var showLanguageSheet = false
 
     var body: some View {
         NavigationView {
@@ -114,6 +118,36 @@ struct ProfileTabView: View {
                                 // TODO: 实现帮助功能
                             }
                         )
+
+                        Divider()
+                            .background(Color.white.opacity(0.1))
+                            .padding(.leading, 50)
+
+                        // 语言切换
+                        Button(action: {
+                            showLanguageSheet = true
+                        }) {
+                            HStack(spacing: 15) {
+                                Image(systemName: "globe")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(ApocalypseTheme.primary)
+                                    .frame(width: 30)
+
+                                Text("语言设置")
+                                    .foregroundColor(.white)
+
+                                Spacer()
+
+                                Text(languageManager.currentLanguage.displayName)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                            }
+                            .padding()
+                        }
                     }
                     .background(Color.white.opacity(0.05))
                     .cornerRadius(12)
@@ -216,6 +250,9 @@ struct ProfileTabView: View {
                         }
                     }
                 )
+            }
+            .sheet(isPresented: $showLanguageSheet) {
+                LanguageSelectionView(isPresented: $showLanguageSheet)
             }
             .overlay(
                 // 错误提示 Toast
@@ -471,6 +508,83 @@ struct SettingRow: View {
                     .foregroundColor(.gray)
             }
             .padding()
+        }
+    }
+}
+
+// 语言选择视图
+struct LanguageSelectionView: View {
+    @Binding var isPresented: Bool
+    @ObservedObject var languageManager = LanguageManager.shared
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                ApocalypseTheme.background
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(LanguageManager.Language.allCases) { language in
+                            Button(action: {
+                                print("🌍 用户选择语言: \(language.displayName)")
+                                languageManager.switchLanguage(to: language)
+
+                                // 延迟关闭，让用户看到选择效果
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    isPresented = false
+                                }
+                            }) {
+                                HStack(spacing: 15) {
+                                    // 语言图标
+                                    Image(systemName: language.icon)
+                                        .font(.title2)
+                                        .foregroundColor(ApocalypseTheme.primary)
+                                        .frame(width: 30)
+
+                                    // 语言名称
+                                    Text(language.displayName)
+                                        .font(.body)
+                                        .foregroundColor(.white)
+
+                                    Spacer()
+
+                                    // 选中标记
+                                    if languageManager.currentLanguage == language {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(ApocalypseTheme.primary)
+                                            .font(.title3)
+                                    }
+                                }
+                                .padding()
+                                .background(
+                                    languageManager.currentLanguage == language
+                                        ? ApocalypseTheme.primary.opacity(0.1)
+                                        : Color.clear
+                                )
+                            }
+
+                            if language != LanguageManager.Language.allCases.last {
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+                            }
+                        }
+                    }
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(12)
+                    .padding()
+                }
+            }
+            .navigationTitle("语言设置")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("完成") {
+                        isPresented = false
+                    }
+                    .foregroundColor(ApocalypseTheme.primary)
+                }
+            }
         }
     }
 }
