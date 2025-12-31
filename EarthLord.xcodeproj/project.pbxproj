@@ -10,10 +10,12 @@
 		4B11F1CD2F04107B00246A90 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4B11F1CC2F04107B00246A90 /* GoogleSignIn */; };
 		4B11F1CF2F04107B00246A90 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4B11F1CE2F04107B00246A90 /* GoogleSignInSwift */; };
 		4B89E12C2EFEC640005A302B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4B89E12B2EFEC640005A302B /* Supabase */; };
+		4BC3DB632F054F2300D1AF02 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 4BC3DB622F054F2300D1AF02 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		4B5C03ED2EFBCCCB00CD5620 /* EarthLord.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EarthLord.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BC3DB622F054F2300D1AF02 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -41,6 +43,7 @@
 		4B5C03E42EFBCCCB00CD5620 = {
 			isa = PBXGroup;
 			children = (
+				4BC3DB622F054F2300D1AF02 /* Localizable.xcstrings */,
 				4B5C03EF2EFBCCCB00CD5620 /* EarthLord */,
 				4B89E12A2EFEC640005A302B /* Frameworks */,
 				4B5C03EE2EFBCCCB00CD5620 /* Products */,
@@ -106,11 +109,12 @@
 				};
 			};
 			buildConfigurationList = 4B5C03E82EFBCCCB00CD5620 /* Build configuration list for PBXProject "EarthLord" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = 4B5C03E42EFBCCCB00CD5620;
 			minimizedProjectReferenceProxies = 1;
@@ -133,6 +137,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4BC3DB632F054F2300D1AF02 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,6 +213,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -264,6 +270,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -278,6 +285,7 @@
 				DEVELOPMENT_TEAM = KJNST6S45D;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        \"com.googleusercontent.apps.144838324436-asoq076tmk27okgn04u5fv1k28poa6f6\"\n    );\n}";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -311,6 +319,7 @@
 				DEVELOPMENT_TEAM = KJNST6S45D;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        \"com.googleusercontent.apps.144838324436-asoq076tmk27okgn04u5fv1k28poa6f6\"\n    );\n}";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

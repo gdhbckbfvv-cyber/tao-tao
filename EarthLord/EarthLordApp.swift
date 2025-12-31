@@ -52,6 +52,11 @@ struct EarthLordApp: App {
                         }
                 }
             }
+            .onOpenURL { url in
+                // 处理 Google Sign-In 的 URL 回调
+                print("📱 收到 URL Scheme 回调: \(url.absoluteString)")
+                _ = authManager.handleGoogleSignInURL(url)
+            }
         }
     }
 }

@@ -35,10 +35,14 @@ class AuthManager: ObservableObject {
     /// Supabase 客户端实例
     private let supabase: SupabaseClient
 
+    /// Google 登录服务
+    private let googleSignInService: GoogleSignInService
+
     // MARK: - Initialization
 
     init(supabase: SupabaseClient) {
         self.supabase = supabase
+        self.googleSignInService = GoogleSignInService(supabase: supabase)
 
         // 监听认证状态变化
         Task {
@@ -57,7 +61,14 @@ class AuthManager: ObservableObject {
 
     /// 处理认证状态变化
     private func handleAuthStateChange(event: AuthChangeEvent, session: Session?) {
-        print("🔐 认证状态变化: \(event)")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🔐 认证状态变化事件: \(event)")
+        print("   会话是否存在: \(session != nil)")
+        if let session = session {
+            print("   用户 ID: \(session.user.id)")
+            print("   邮箱: \(session.user.email ?? "无")")
+        }
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         switch event {
         case .signedIn:
@@ -68,19 +79,24 @@ class AuthManager: ObservableObject {
                 // 只有在不需要设置密码时才标记为已认证
                 if !needsPasswordSetup {
                     isAuthenticated = true
-                    print("✅ 用户已完全认证")
+                    print("✅ 用户已完全认证，isAuthenticated = true")
+                } else {
+                    print("⚠️ 需要设置密码，isAuthenticated 保持 false")
                 }
             }
 
         case .signedOut:
             // 用户登出（包括主动登出和会话过期）
-            print("⚠️ 用户已登出")
+            print("⚠️ 用户已登出事件触发")
+            print("   设置 isAuthenticated = false")
+            print("   清理 currentUser")
             isAuthenticated = false
             needsPasswordSetup = false
             currentUser = nil
             otpSent = false
             otpVerified = false
             errorMessage = nil
+            print("✅ 登出状态已清理完成")
 
         case .userUpdated:
             // 用户信息更新
@@ -213,12 +229,20 @@ class AuthManager: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        print("🔐 开始登录流程...")
+        print("📧 邮箱: \(email)")
+        print("🔑 密码长度: \(password.count)")
+        print("🌐 Supabase URL: \(SupabaseConfig.supabaseURL)")
+
         do {
             // 使用邮箱密码登录
+            print("📡 正在调用 Supabase 登录 API...")
             try await supabase.auth.signIn(
                 email: email,
                 password: password
             )
+
+            print("✅ Supabase 登录 API 调用成功")
 
             // 获取用户信息
             await fetchCurrentUser()
@@ -228,7 +252,16 @@ class AuthManager: ObservableObject {
             needsPasswordSetup = false
 
             errorMessage = nil
+            print("✅ 登录流程完成")
         } catch {
+            print("❌ 登录失败详情:")
+            print("   错误: \(error)")
+            print("   错误描述: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("   Domain: \(nsError.domain)")
+                print("   Code: \(nsError.code)")
+                print("   UserInfo: \(nsError.userInfo)")
+            }
             errorMessage = "登录失败: \(error.localizedDescription)"
             isAuthenticated = false
         }
@@ -332,18 +365,42 @@ class AuthManager: ObservableObject {
         errorMessage = "Apple 登录功能开发中..."
     }
 
-    /// Google 登录（待实现）
+    /// Google 登录
     func signInWithGoogle() async {
-        // TODO: 实现 Google 登录
-        // 1. 使用 GoogleSignIn SDK 获取 Google 凭证
-        // 2. 调用 supabase.auth.signInWithIdToken(
-        //      credentials: .init(
-        //          provider: .google,
-        //          idToken: googleIdToken
-        //      )
-        //    )
-        // 3. 获取用户信息并设置 isAuthenticated = true
-        errorMessage = "Google 登录功能开发中..."
+        isLoading = true
+        errorMessage = nil
+        print("🚀 启动 Google 登录流程...")
+
+        do {
+            // 1. 执行 Google 登录并获取 Supabase 会话
+            try await googleSignInService.signIn()
+
+            print("✅ Google 登录成功，正在获取用户信息...")
+
+            // 2. 获取用户信息
+            await fetchCurrentUser()
+
+            // 3. 登录成功，允许进入主页
+            isAuthenticated = true
+            needsPasswordSetup = false
+
+            print("✅ 用户信息获取成功，登录流程完成")
+            errorMessage = nil
+
+        } catch {
+            print("❌ Google 登录失败: \(error.localizedDescription)")
+            errorMessage = "Google 登录失败: \(error.localizedDescription)"
+            isAuthenticated = false
+        }
+
+        isLoading = false
+    }
+
+    /// 处理 Google Sign-In 的 URL 回调
+    /// - Parameter url: 回调 URL
+    /// - Returns: 是否成功处理
+    func handleGoogleSignInURL(_ url: URL) -> Bool {
+        return googleSignInService.handleURL(url)
     }
 
     // MARK: - 其他方法
@@ -355,7 +412,10 @@ class AuthManager: ObservableObject {
 
         do {
             try await supabase.auth.signOut()
-            print("✅ 退出登录成功")
+            print("✅ Supabase 退出登录成功")
+
+            // Google 登出
+            googleSignInService.signOut()
 
             // 清空所有状态
             isAuthenticated = false
@@ -427,6 +487,127 @@ class AuthManager: ObservableObject {
                 )
             }
         }
+    }
+
+    // MARK: - 删除账户
+
+    /// 删除当前用户账户
+    /// ⚠️ 此操作不可撤销！将永久删除用户账户和所有相关数据
+    func deleteAccount() async throws {
+        print("")
+        print("════════════════════════════════════════════")
+        print("🗑️  开始删除账户流程")
+        print("════════════════════════════════════════════")
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // 1. 获取当前会话以获取 access token
+            print("")
+            print("📋 步骤 1: 获取当前会话...")
+            let session = try await supabase.auth.session
+            print("   ✅ 会话获取成功")
+            print("   用户 ID: \(session.user.id)")
+            print("   邮箱: \(session.user.email ?? "无")")
+            print("   Access Token: \(session.accessToken.prefix(50))...")
+
+            // 2. 调用删除账户边缘函数
+            print("")
+            print("📡 步骤 2: 调用删除账户边缘函数...")
+            print("   函数名称: delete-account")
+            print("   请求参数: {confirm: true}")
+            print("   Authorization: Bearer \(session.accessToken.prefix(20))...")
+
+            struct DeleteRequest: Encodable {
+                let confirm: Bool
+            }
+
+            struct DeleteResponse: Decodable {
+                let success: Bool
+                let message: String
+                let deleted_user_id: String
+                let deleted_email: String?
+            }
+
+            // 手动传递 Authorization header
+            let response: DeleteResponse = try await supabase.functions.invoke(
+                "delete-account",
+                options: FunctionInvokeOptions(
+                    headers: [
+                        "Authorization": "Bearer \(session.accessToken)"
+                    ],
+                    body: DeleteRequest(confirm: true)
+                )
+            )
+
+            print("   ✅ 边缘函数调用成功")
+            print("   响应: success = \(response.success)")
+            print("   消息: \(response.message)")
+            print("   删除的用户 ID: \(response.deleted_user_id)")
+            if let email = response.deleted_email {
+                print("   删除的邮箱: \(email)")
+            }
+
+            // 3. 账户已删除，尝试清理 Supabase 会话
+            print("")
+            print("🧹 步骤 3: 清理 Supabase 本地会话...")
+            do {
+                try await supabase.auth.signOut()
+                print("   ✅ Supabase 会话已清理（signOut 成功）")
+            } catch {
+                // 账户已删除，会话可能已失效，忽略错误
+                print("   ⚠️ Supabase 会话清理失败（这是预期行为，因为账户已删除）")
+                print("   错误: \(error.localizedDescription)")
+            }
+
+            // 4. 清理本地状态
+            print("")
+            print("🧹 步骤 4: 清理本地状态...")
+            print("   设置前: isAuthenticated = \(isAuthenticated)")
+            print("   设置前: currentUser = \(currentUser?.email ?? "nil")")
+
+            isAuthenticated = false
+            currentUser = nil
+            needsPasswordSetup = false
+            otpSent = false
+            otpVerified = false
+            errorMessage = nil
+
+            print("   设置后: isAuthenticated = \(isAuthenticated)")
+            print("   设置后: currentUser = \(currentUser?.email ?? "nil")")
+
+            print("")
+            print("════════════════════════════════════════════")
+            print("✅ 账户删除完成！")
+            print("   应该触发认证状态变化事件")
+            print("   应该自动返回登录页面")
+            print("════════════════════════════════════════════")
+            print("")
+
+        } catch {
+            print("")
+            print("════════════════════════════════════════════")
+            print("❌ 删除账户失败")
+            print("════════════════════════════════════════════")
+            print("   错误类型: \(type(of: error))")
+            print("   错误描述: \(error.localizedDescription)")
+
+            if let nsError = error as NSError? {
+                print("   Domain: \(nsError.domain)")
+                print("   Code: \(nsError.code)")
+                print("   UserInfo: \(nsError.userInfo)")
+            }
+            print("════════════════════════════════════════════")
+            print("")
+
+            errorMessage = "删除账户失败: \(error.localizedDescription)"
+            isLoading = false
+            throw error
+        }
+
+        isLoading = false
+        print("🔚 deleteAccount() 函数执行结束")
     }
 
     // MARK: - Helper Methods
