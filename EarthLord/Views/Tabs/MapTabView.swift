@@ -238,7 +238,7 @@ struct MapTabView: View {
     private func centerMapToUserLocation() {
         print("🎯 用户点击定位按钮，尝试居中地图...")
 
-        guard let location = locationManager.userLocation else {
+        guard locationManager.userLocation != nil else {
             print("⚠️ 用户位置为空，无法居中")
             return
         }

@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "《地球新主》需要获取您的位置\n来显示您在末日世界中的坐标" : {
+
+    },
     "%lld秒后可重新发送" : {
       "localizations" : {
         "en" : {
@@ -141,6 +144,9 @@
         }
       }
     },
+    "前往设置" : {
+
+    },
     "加入时间: %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -234,6 +240,12 @@
         }
       }
     },
+    "定位中" : {
+
+    },
+    "定位权限被拒绝" : {
+
+    },
     "帮助与反馈" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -296,6 +308,9 @@
         }
       }
     },
+    "授予定位权限" : {
+
+    },
     "探索" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -308,6 +323,7 @@
       }
     },
     "探索和圈占领地" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -316,6 +332,12 @@
           }
         }
       }
+    },
+    "搜索位置..." : {
+
+    },
+    "无法显示您在地图上的位置\n请在设置中允许定位权限" : {
+
     },
     "更多" : {
       "localizations" : {
@@ -608,6 +630,9 @@
           }
         }
       }
+    },
+    "需要定位权限" : {
+
     },
     "领地" : {
       "localizations" : {

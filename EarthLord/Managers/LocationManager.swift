@@ -42,11 +42,13 @@ class LocationManager: NSObject, ObservableObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest // 最高精度
         locationManager.distanceFilter = 10 // 移动 10 米才更新位置
 
-        // 获取当前授权状态
-        authorizationStatus = locationManager.authorizationStatus
-
-        print("🌍 LocationManager 初始化完成")
-        print("   当前授权状态: \(authorizationStatus.description)")
+        // 获取当前授权状态（延迟获取，避免初始化时崩溃）
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.authorizationStatus = self.locationManager.authorizationStatus
+            print("🌍 LocationManager 初始化完成")
+            print("   当前授权状态: \(self.authorizationStatus.description)")
+        }
     }
 
     // MARK: - 计算属性
