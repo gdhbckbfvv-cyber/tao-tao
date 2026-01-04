@@ -30,7 +30,9 @@ struct MapTabView: View {
             if locationManager.isAuthorized {
                 MapViewRepresentable(
                     userLocation: $locationManager.userLocation,
-                    hasLocatedUser: $hasLocatedUser
+                    hasLocatedUser: $hasLocatedUser,
+                    pathCoordinates: $locationManager.pathCoordinates,
+                    pathUpdateVersion: $locationManager.pathUpdateVersion
                 )
                 .ignoresSafeArea()
             } else {
@@ -67,7 +69,7 @@ struct MapTabView: View {
                 Spacer()
             }
 
-            // 右下角定位按钮
+            // 右下角功能按钮（定位 + 圈地）
             if locationManager.isAuthorized {
                 VStack {
                     Spacer()
@@ -75,11 +77,22 @@ struct MapTabView: View {
                     HStack {
                         Spacer()
 
-                        locationButton
-                            .padding(.trailing, 20)
-                            .padding(.bottom, 30)
+                        VStack(spacing: 16) {
+                            // 定位按钮
+                            locationButton
+
+                            // 圈地按钮
+                            territoryButton
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 30)
                     }
                 }
+            }
+
+            // 圈地状态卡片（圈地中时显示）
+            if locationManager.isTracking {
+                trackingStatusCard
             }
 
             // 权限被拒绝时的提示卡片
@@ -175,6 +188,77 @@ struct MapTabView: View {
         }
     }
 
+    /// 圈地按钮
+    private var territoryButton: some View {
+        Button(action: {
+            toggleTerritoryTracking()
+        }) {
+            Image(systemName: locationManager.isTracking ? "stop.circle.fill" : "map.circle.fill")
+                .font(.title2)
+                .foregroundColor(.white)
+                .padding()
+                .background(
+                    Circle()
+                        .fill(locationManager.isTracking ? Color.red : ApocalypseTheme.success)
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+        }
+    }
+
+    /// 圈地状态卡片
+    private var trackingStatusCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "figure.walk.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(ApocalypseTheme.primary)
+
+                Text("圈地中...")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                Spacer()
+
+                // 路径点数量
+                Text("\(locationManager.pathCoordinates.count) 点")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+
+            // 进度指示器
+            HStack(spacing: 8) {
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .fill(ApocalypseTheme.primary)
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(locationManager.pathUpdateVersion % 3 == index ? 1.2 : 1.0)
+                        .animation(.easeInOut(duration: 0.5).repeatForever(), value: locationManager.pathUpdateVersion)
+                }
+
+                Text("每 2 秒记录位置")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+
+            Divider()
+                .background(Color.gray.opacity(0.3))
+
+            // 提示信息
+            Text("沿着您想要圈定的区域边界行走")
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(ApocalypseTheme.cardBackground.opacity(0.95))
+                .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+        )
+        .padding(.horizontal, 20)
+        .padding(.bottom, 120)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+    }
+
     /// 权限被拒绝时的提示卡片
     private var permissionDeniedCard: some View {
         VStack(spacing: 16) {
@@ -257,6 +341,19 @@ struct MapTabView: View {
     private func openAppSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
+        }
+    }
+
+    /// 切换圈地追踪状态
+    private func toggleTerritoryTracking() {
+        if locationManager.isTracking {
+            // 正在追踪，点击停止
+            print("🛑 用户点击停止圈地")
+            locationManager.stopPathTracking()
+        } else {
+            // 未追踪，点击开始
+            print("🎯 用户点击开始圈地")
+            locationManager.startPathTracking()
         }
     }
 }
