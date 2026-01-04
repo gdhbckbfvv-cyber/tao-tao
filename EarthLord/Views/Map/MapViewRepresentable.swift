@@ -21,10 +21,13 @@ struct MapViewRepresentable: UIViewRepresentable {
     @Binding var hasLocatedUser: Bool
 
     /// 路径追踪坐标点（圈地路径）
-    @Binding var pathCoordinates: [CLLocationCoordinate2D]
+    @Binding var trackingPath: [CLLocationCoordinate2D]
 
     /// 路径更新版本（用于触发 SwiftUI 更新）
-    @Binding var pathUpdateVersion: Int
+    var pathUpdateVersion: Int
+
+    /// 是否正在追踪
+    var isTracking: Bool
 
     // MARK: - UIViewRepresentable 协议
 
@@ -57,7 +60,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 更新 UIView（当路径坐标更新时重新绘制轨迹）
     func updateUIView(_ uiView: MKMapView, context: Context) {
         // 当路径更新版本变化时，重新绘制轨迹
-        context.coordinator.updateTrackingPath(on: uiView, coordinates: pathCoordinates)
+        context.coordinator.updateTrackingPath(on: uiView, coordinates: trackingPath)
     }
 
     /// 创建协调器

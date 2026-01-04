@@ -31,8 +31,9 @@ struct MapTabView: View {
                 MapViewRepresentable(
                     userLocation: $locationManager.userLocation,
                     hasLocatedUser: $hasLocatedUser,
-                    pathCoordinates: $locationManager.pathCoordinates,
-                    pathUpdateVersion: $locationManager.pathUpdateVersion
+                    trackingPath: $locationManager.pathCoordinates,
+                    pathUpdateVersion: locationManager.pathUpdateVersion,
+                    isTracking: locationManager.isTracking
                 )
                 .ignoresSafeArea()
             } else {
@@ -69,7 +70,7 @@ struct MapTabView: View {
                 Spacer()
             }
 
-            // 右下角功能按钮（定位 + 圈地）
+            // 右下角定位按钮
             if locationManager.isAuthorized {
                 VStack {
                     Spacer()
@@ -77,16 +78,24 @@ struct MapTabView: View {
                     HStack {
                         Spacer()
 
-                        VStack(spacing: 16) {
-                            // 定位按钮
-                            locationButton
-
-                            // 圈地按钮
-                            territoryButton
-                        }
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 30)
+                        locationButton
+                            .padding(.trailing, 20)
+                            .padding(.bottom, 100) // 为圈地按钮留出空间
                     }
+                }
+            }
+
+            // 底部中间圈地按钮
+            if locationManager.isAuthorized {
+                VStack {
+                    Spacer()
+
+                    HStack {
+                        Spacer()
+                        territoryButton
+                        Spacer()
+                    }
+                    .padding(.bottom, 30)
                 }
             }
 
@@ -188,20 +197,38 @@ struct MapTabView: View {
         }
     }
 
-    /// 圈地按钮
+    /// 圈地按钮（胶囊型）
     private var territoryButton: some View {
         Button(action: {
             toggleTerritoryTracking()
         }) {
-            Image(systemName: locationManager.isTracking ? "stop.circle.fill" : "map.circle.fill")
-                .font(.title2)
-                .foregroundColor(.white)
-                .padding()
-                .background(
-                    Circle()
-                        .fill(locationManager.isTracking ? Color.red : ApocalypseTheme.success)
-                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                )
+            HStack(spacing: 8) {
+                Image(systemName: locationManager.isTracking ? "stop.fill" : "flag.fill")
+                    .font(.body)
+                    .foregroundColor(.white)
+
+                if locationManager.isTracking {
+                    Text("停止圈地")
+                        .font(.headline)
+                        .foregroundColor(.white)
+
+                    // 显示当前点数
+                    Text("(\(locationManager.pathCoordinates.count))")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.8))
+                } else {
+                    Text("开始圈地")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                Capsule()
+                    .fill(locationManager.isTracking ? Color.red : ApocalypseTheme.success)
+                    .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+            )
         }
     }
 
