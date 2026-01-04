@@ -4,8 +4,28 @@
     "" : {
 
     },
+    "(%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(%lld)"
+          }
+        }
+      }
+    },
     "《地球新主》需要获取您的位置\n来显示您在末日世界中的坐标" : {
 
+    },
+    "%lld 点" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld points"
+          }
+        }
+      }
     },
     "%lld秒后可重新发送" : {
       "localizations" : {
@@ -85,6 +105,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sign in with Google"
+          }
+        }
+      }
+    },
+    "停止圈地" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Claiming"
           }
         }
       }
@@ -188,6 +218,16 @@
         }
       }
     },
+    "圈地中..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claiming..."
+          }
+        }
+      }
+    },
     "地图" : {
       "localizations" : {
         "en" : {
@@ -274,6 +314,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Developer Tools & Testing"
+          }
+        }
+      }
+    },
+    "开始圈地" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Claiming"
           }
         }
       }
@@ -376,6 +426,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This action will permanently delete your account\nAll data will be unrecoverable"
+          }
+        }
+      }
+    },
+    "每 2 秒记录位置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording location every 2 seconds"
+          }
+        }
+      }
+    },
+    "沿着您想要圈定的区域边界行走" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walk along the boundary of the area you want to claim"
           }
         }
       }
