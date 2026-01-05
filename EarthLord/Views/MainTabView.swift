@@ -32,6 +32,13 @@ struct MainTabView: View {
                     Text("更多")
                 }
                 .tag(3)
+
+            TerritoryTestView()
+                .tabItem {
+                    Image(systemName: "hammer.fill")
+                    Text("测试")
+                }
+                .tag(4)
         }
         .tint(ApocalypseTheme.primary)
     }

@@ -29,6 +29,9 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 是否正在追踪
     var isTracking: Bool
 
+    /// 路径是否已闭合（Day16）
+    var isPathClosed: Bool
+
     // MARK: - UIViewRepresentable 协议
 
     /// 创建 UIView（MKMapView）
@@ -59,8 +62,8 @@ struct MapViewRepresentable: UIViewRepresentable {
 
     /// 更新 UIView（当路径坐标更新时重新绘制轨迹）
     func updateUIView(_ uiView: MKMapView, context: Context) {
-        // 当路径更新版本变化时，重新绘制轨迹
-        context.coordinator.updateTrackingPath(on: uiView, coordinates: trackingPath)
+        // 当路径更新版本变化时，重新绘制轨迹（Day16: 传入 isPathClosed）
+        context.coordinator.updateTrackingPath(on: uiView, coordinates: trackingPath, isPathClosed: isPathClosed)
     }
 
     /// 创建协调器
@@ -177,15 +180,31 @@ struct MapViewRepresentable: UIViewRepresentable {
         /// 当前轨迹覆盖物（用于删除旧轨迹）
         private var currentPathOverlay: MKPolyline?
 
+        /// 当前多边形覆盖物（用于删除旧多边形）Day16
+        private var currentPolygonOverlay: MKPolygon?
+
+        /// 路径是否已闭合（用于渲染器判断颜色）Day16
+        private var isPathClosed: Bool = false
+
         /// 更新追踪路径
         /// - Parameters:
         ///   - mapView: 地图视图
         ///   - coordinates: 路径坐标点数组
-        func updateTrackingPath(on mapView: MKMapView, coordinates: [CLLocationCoordinate2D]) {
+        ///   - isPathClosed: 路径是否已闭合（Day16）
+        func updateTrackingPath(on mapView: MKMapView, coordinates: [CLLocationCoordinate2D], isPathClosed: Bool) {
+            // 更新闭环状态（Day16）
+            self.isPathClosed = isPathClosed
+
             // 删除旧的轨迹
             if let oldOverlay = currentPathOverlay {
                 mapView.removeOverlay(oldOverlay)
                 currentPathOverlay = nil
+            }
+
+            // 删除旧的多边形（Day16）
+            if let oldPolygon = currentPolygonOverlay {
+                mapView.removeOverlay(oldPolygon)
+                currentPolygonOverlay = nil
             }
 
             // 如果路径点少于 2 个，不绘制
@@ -195,6 +214,7 @@ struct MapViewRepresentable: UIViewRepresentable {
 
             print("🎨 更新轨迹:")
             print("   路径点数: \(coordinates.count)")
+            print("   是否闭合: \(isPathClosed)")
 
             // 坐标转换：WGS-84 → GCJ-02（中国火星坐标系）
             let gcj02Coordinates = CoordinateConverter.wgs84ToGcj02(coordinates)
@@ -209,6 +229,14 @@ struct MapViewRepresentable: UIViewRepresentable {
             currentPathOverlay = polyline
 
             print("✅ 轨迹已绘制到地图")
+
+            // Day16: 如果路径已闭合，绘制多边形填充
+            if isPathClosed && gcj02Coordinates.count >= 3 {
+                let polygon = MKPolygon(coordinates: gcj02Coordinates, count: gcj02Coordinates.count)
+                mapView.addOverlay(polygon)
+                currentPolygonOverlay = polygon
+                print("✅ 多边形已绘制到地图")
+            }
         }
 
         /// 提供覆盖物渲染器（绘制轨迹样式）
@@ -221,15 +249,43 @@ struct MapViewRepresentable: UIViewRepresentable {
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
 
+                // Day16: 根据是否闭环改变轨迹颜色
+                let strokeColor: UIColor
+                let colorName: String
+
+                if isPathClosed {
+                    strokeColor = UIColor.systemGreen.withAlphaComponent(0.8) // 绿色半透明
+                    colorName = "绿色半透明（已闭环）"
+                } else {
+                    strokeColor = UIColor.systemCyan.withAlphaComponent(0.8) // 青色半透明
+                    colorName = "青色半透明（未闭环）"
+                }
+
                 // 轨迹样式配置
-                renderer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.8) // 蓝色半透明
+                renderer.strokeColor = strokeColor
                 renderer.lineWidth = 4 // 线条宽度 4 像素
                 renderer.lineCap = .round // 圆角端点
                 renderer.lineJoin = .round // 圆角连接点
 
                 print("🎨 渲染轨迹:")
-                print("   颜色: 蓝色半透明")
+                print("   颜色: \(colorName)")
                 print("   宽度: 4px")
+
+                return renderer
+            }
+
+            // Day16: 如果是多边形覆盖物，返回多边形渲染器
+            if let polygon = overlay as? MKPolygon {
+                let renderer = MKPolygonRenderer(polygon: polygon)
+
+                // 多边形样式配置
+                renderer.fillColor = UIColor.systemGreen.withAlphaComponent(0.25) // 半透明绿色填充
+                renderer.strokeColor = UIColor.systemGreen // 绿色边框
+                renderer.lineWidth = 2 // 边框宽度 2 像素
+
+                print("🎨 渲染多边形:")
+                print("   填充色: 半透明绿色")
+                print("   边框色: 绿色")
 
                 return renderer
             }

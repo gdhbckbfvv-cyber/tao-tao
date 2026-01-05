@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MapKit
+import CoreLocation
 
 struct MapTabView: View {
 
@@ -33,7 +34,8 @@ struct MapTabView: View {
                     hasLocatedUser: $hasLocatedUser,
                     trackingPath: $locationManager.pathCoordinates,
                     pathUpdateVersion: locationManager.pathUpdateVersion,
-                    isTracking: locationManager.isTracking
+                    isTracking: locationManager.isTracking,
+                    isPathClosed: locationManager.isPathClosed // Day16: 传入闭环状态
                 )
                 .ignoresSafeArea()
             } else {
@@ -66,6 +68,16 @@ struct MapTabView: View {
                         .opacity(0.9)
                         .blur(radius: 10)
                 )
+
+                // Day16: 速度警告横幅
+                if locationManager.speedWarning != nil {
+                    speedWarningBanner
+                }
+
+                // 闭环成功提示横幅
+                if locationManager.isPathClosed {
+                    pathClosedSuccessBanner
+                }
 
                 Spacer()
             }
@@ -232,6 +244,80 @@ struct MapTabView: View {
         }
     }
 
+    /// 速度警告横幅（Day16）
+    private var speedWarningBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.title3)
+                .foregroundColor(.white)
+
+            if let warning = locationManager.speedWarning {
+                Text(warning)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+            }
+
+            Spacer()
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(locationManager.isTracking ? Color.orange : Color.red)
+        )
+        .padding(.horizontal)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .animation(.easeInOut, value: locationManager.speedWarning)
+        .onAppear {
+            // 3 秒后自动隐藏警告
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                locationManager.speedWarning = nil
+            }
+        }
+    }
+
+    /// 闭环成功提示横幅
+    private var pathClosedSuccessBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title2)
+                .foregroundColor(.white)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("闭环成功！")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+
+                Text("距起点 \(String(format: "%.1f", calculateDistanceToStart()))m，共 \(locationManager.pathCoordinates.count) 个点")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.9))
+            }
+
+            Spacer()
+
+            // 庆祝图标
+            Image(systemName: "star.fill")
+                .font(.title3)
+                .foregroundColor(.yellow)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [ApocalypseTheme.success, ApocalypseTheme.success.opacity(0.8)]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .shadow(color: ApocalypseTheme.success.opacity(0.5), radius: 10, x: 0, y: 5)
+        )
+        .padding(.horizontal)
+        .transition(.move(edge: .top).combined(with: .scale))
+        .animation(.spring(response: 0.6, dampingFraction: 0.7), value: locationManager.isPathClosed)
+    }
+
     /// 圈地状态卡片
     private var trackingStatusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -382,6 +468,18 @@ struct MapTabView: View {
             print("🎯 用户点击开始圈地")
             locationManager.startPathTracking()
         }
+    }
+
+    /// 计算当前位置到起点的距离
+    private func calculateDistanceToStart() -> Double {
+        guard let startPoint = locationManager.pathCoordinates.first,
+              let currentPoint = locationManager.pathCoordinates.last else {
+            return 0
+        }
+
+        let fromLocation = CLLocation(latitude: startPoint.latitude, longitude: startPoint.longitude)
+        let toLocation = CLLocation(latitude: currentPoint.latitude, longitude: currentPoint.longitude)
+        return fromLocation.distance(from: toLocation)
     }
 }
 
