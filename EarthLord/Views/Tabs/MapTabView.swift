@@ -19,6 +19,9 @@ struct MapTabView: View {
     /// 是否已完成首次定位居中
     @State private var hasLocatedUser = false
 
+    /// 是否显示验证结果横幅（Day17）
+    @State private var showValidationBanner = false
+
     // MARK: - Body
 
     var body: some View {
@@ -74,9 +77,9 @@ struct MapTabView: View {
                     speedWarningBanner
                 }
 
-                // 闭环成功提示横幅
-                if locationManager.isPathClosed {
-                    pathClosedSuccessBanner
+                // Day17: 验证结果横幅（根据验证结果显示成功或失败）
+                if showValidationBanner {
+                    validationResultBanner
                 }
 
                 Spacer()
@@ -123,6 +126,23 @@ struct MapTabView: View {
         }
         .onAppear {
             handleLocationPermission()
+        }
+        // Day17: 监听闭环状态，闭环后根据验证结果显示横幅
+        .onReceive(locationManager.$isPathClosed) { isClosed in
+            if isClosed {
+                // 闭环后延迟一点点，等待验证结果
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation {
+                        showValidationBanner = true
+                    }
+                    // 3 秒后自动隐藏
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        withAnimation {
+                            showValidationBanner = false
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -276,46 +296,31 @@ struct MapTabView: View {
         }
     }
 
-    /// 闭环成功提示横幅
-    private var pathClosedSuccessBanner: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title2)
-                .foregroundColor(.white)
+    /// 验证结果横幅（Day17：根据验证结果显示成功或失败）
+    private var validationResultBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: locationManager.territoryValidationPassed
+                  ? "checkmark.circle.fill"
+                  : "xmark.circle.fill")
+                .font(.body)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("闭环成功！")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-
-                Text("距起点 \(String(format: "%.1f", calculateDistanceToStart()))m，共 \(locationManager.pathCoordinates.count) 个点")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.9))
+            if locationManager.territoryValidationPassed {
+                Text("圈地成功！领地面积: \(String(format: "%.0f", locationManager.calculatedArea))m²")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            } else {
+                Text(locationManager.territoryValidationError ?? "验证失败")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
             }
-
-            Spacer()
-
-            // 庆祝图标
-            Image(systemName: "star.fill")
-                .font(.title3)
-                .foregroundColor(.yellow)
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [ApocalypseTheme.success, ApocalypseTheme.success.opacity(0.8)]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .shadow(color: ApocalypseTheme.success.opacity(0.5), radius: 10, x: 0, y: 5)
-        )
-        .padding(.horizontal)
-        .transition(.move(edge: .top).combined(with: .scale))
-        .animation(.spring(response: 0.6, dampingFraction: 0.7), value: locationManager.isPathClosed)
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(locationManager.territoryValidationPassed ? Color.green : Color.red)
+        .padding(.top, 50)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     /// 圈地状态卡片
