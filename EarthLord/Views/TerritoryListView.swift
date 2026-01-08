@@ -1,9 +1,18 @@
+//
+//  TerritoryListView.swift
+//  EarthLord
+//
+//  领地列表视图
+//  显示用户已上传的所有领地
+//
+
 import SwiftUI
 
-struct TerritoryTabView: View {
+struct TerritoryListView: View {
 
     // MARK: - 状态
 
+    @Environment(\.dismiss) private var dismiss
     @State private var territories: [Territory] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -13,11 +22,6 @@ struct TerritoryTabView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // 背景色
-                ApocalypseTheme.background
-                    .ignoresSafeArea()
-
-                // 内容
                 if isLoading {
                     loadingView
                 } else if let error = errorMessage {
@@ -29,8 +33,13 @@ struct TerritoryTabView: View {
                 }
             }
             .navigationTitle("我的领地")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("关闭") {
+                        dismiss()
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         Task {
@@ -38,7 +47,6 @@ struct TerritoryTabView: View {
                         }
                     } label: {
                         Image(systemName: "arrow.clockwise")
-                            .foregroundColor(ApocalypseTheme.primary)
                     }
                     .disabled(isLoading)
                 }
@@ -56,24 +64,22 @@ struct TerritoryTabView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
-                .tint(ApocalypseTheme.primary)
             Text("加载中...")
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
     }
 
     /// 错误视图
     private func errorView(error: String) -> some View {
         VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 50))
                 .foregroundColor(.orange)
             Text("加载失败")
                 .font(.headline)
-                .foregroundColor(.white)
             Text(error)
                 .font(.subheadline)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             Button("重试") {
@@ -82,7 +88,6 @@ struct TerritoryTabView: View {
                 }
             }
             .buttonStyle(.bordered)
-            .tint(ApocalypseTheme.primary)
         }
         .padding()
     }
@@ -90,15 +95,14 @@ struct TerritoryTabView: View {
     /// 空状态视图
     private var emptyView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "map.fill")
-                .font(.system(size: 60))
-                .foregroundColor(ApocalypseTheme.primary.opacity(0.6))
+            Image(systemName: "map")
+                .font(.system(size: 50))
+                .foregroundColor(.secondary)
             Text("暂无领地")
                 .font(.headline)
-                .foregroundColor(.white)
-            Text("前往地图页面开始圈地\n您的领地将显示在这里")
+            Text("开始圈地后，您的领地将显示在这里")
                 .font(.subheadline)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
         }
@@ -107,17 +111,14 @@ struct TerritoryTabView: View {
 
     /// 领地列表
     private var territoryList: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(territories) { territory in
-                    NavigationLink(destination: TerritoryDetailView(territory: territory)) {
-                        TerritoryCard(territory: territory)
-                    }
-                    .buttonStyle(PlainButtonStyle())
+        List {
+            ForEach(territories) { territory in
+                NavigationLink(destination: TerritoryDetailView(territory: territory)) {
+                    TerritoryRow(territory: territory)
                 }
             }
-            .padding()
         }
+        .listStyle(.insetGrouped)
     }
 
     // MARK: - 方法
@@ -129,80 +130,56 @@ struct TerritoryTabView: View {
 
         do {
             territories = try await TerritoryManager.shared.loadAllTerritories()
-            print("✅ 领地 Tab：加载成功，共 \(territories.count) 块领地")
         } catch {
             errorMessage = error.localizedDescription
-            print("❌ 领地 Tab：加载失败 - \(error.localizedDescription)")
         }
 
         isLoading = false
     }
 }
 
-// MARK: - 领地卡片
+// MARK: - 领地行视图
 
-struct TerritoryCard: View {
+struct TerritoryRow: View {
     let territory: Territory
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             // 标题行
             HStack {
                 Image(systemName: "flag.fill")
-                    .font(.title2)
-                    .foregroundColor(ApocalypseTheme.success)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(territory.name ?? "领地 #\(territory.id.prefix(8))")
-                        .font(.headline)
-                        .foregroundColor(.white)
-
-                    if let pointCount = territory.pointCount {
-                        Text("\(pointCount) 个路径点")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
-
+                    .foregroundColor(.green)
+                Text(territory.name ?? "未命名领地")
+                    .font(.headline)
                 Spacer()
-
-                // 状态标记
-                if territory.isActive ?? true {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 8, height: 8)
-                        Text("激活")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    }
-                }
             }
 
-            Divider()
-                .background(Color.white.opacity(0.1))
-
             // 详细信息
-            HStack(spacing: 20) {
-                InfoItem(
+            VStack(alignment: .leading, spacing: 4) {
+                InfoRow(
                     icon: "square.dashed",
                     label: "面积",
                     value: formatArea(territory.area)
                 )
 
-                Spacer()
+                if let pointCount = territory.pointCount {
+                    InfoRow(
+                        icon: "mappin.circle",
+                        label: "路径点",
+                        value: "\(pointCount) 个"
+                    )
+                }
 
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.gray)
-                    .font(.caption)
+                InfoRow(
+                    icon: "checkmark.circle",
+                    label: "状态",
+                    value: (territory.isActive ?? true) ? "激活" : "未激活"
+                )
             }
+            .font(.subheadline)
+            .foregroundColor(.secondary)
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(ApocalypseTheme.cardBackground)
-                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-        )
+        .padding(.vertical, 4)
     }
 
     /// 格式化面积
@@ -215,9 +192,9 @@ struct TerritoryCard: View {
     }
 }
 
-// MARK: - 信息项
+// MARK: - 信息行视图
 
-struct InfoItem: View {
+struct InfoRow: View {
     let icon: String
     let label: String
     let value: String
@@ -225,20 +202,16 @@ struct InfoItem: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .foregroundColor(ApocalypseTheme.primary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                Text(value)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-            }
+                .frame(width: 20)
+            Text(label + ":")
+            Text(value)
+                .fontWeight(.medium)
         }
     }
 }
 
+// MARK: - 预览
+
 #Preview {
-    TerritoryTabView()
+    TerritoryListView()
 }

@@ -82,6 +82,22 @@ struct MapTabView: View {
                     validationResultBanner
                 }
 
+                // Day18: 确认登记按钮（验证通过后显示）
+                if locationManager.territoryValidationPassed &&
+                   !locationManager.isUploadingTerritory &&
+                   !locationManager.territoryUploadSuccess {
+                    confirmTerritoryButton
+                }
+
+                // Day18: 上传状态横幅
+                if locationManager.isUploadingTerritory {
+                    uploadingBanner
+                } else if locationManager.territoryUploadSuccess {
+                    uploadSuccessBanner
+                } else if let error = locationManager.territoryUploadError {
+                    uploadErrorBanner(error: error)
+                }
+
                 Spacer()
             }
 
@@ -321,6 +337,115 @@ struct MapTabView: View {
         .background(locationManager.territoryValidationPassed ? Color.green : Color.red)
         .padding(.top, 50)
         .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    /// 上传中横幅（Day18）
+    private var uploadingBanner: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+
+            Text("正在上传领地...")
+                .font(.subheadline)
+                .fontWeight(.medium)
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(Color.blue)
+        .padding(.top, 100)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    /// 上传成功横幅（Day18）
+    private var uploadSuccessBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.body)
+
+            Text("领地上传成功！")
+                .font(.subheadline)
+                .fontWeight(.medium)
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(Color.green)
+        .padding(.top, 100)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .onAppear {
+            // 3秒后自动隐藏
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                withAnimation {
+                    locationManager.territoryUploadSuccess = false
+                }
+            }
+        }
+    }
+
+    /// 确认登记按钮（Day18）
+    private var confirmTerritoryButton: some View {
+        Button(action: {
+            // 再次检查验证状态
+            guard locationManager.territoryValidationPassed else {
+                return
+            }
+
+            // 调用上传方法
+            locationManager.uploadTerritory()
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.body)
+
+                Text("确认登记领地")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+            .background(
+                LinearGradient(
+                    colors: [Color.green, Color.green.opacity(0.8)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(25)
+            .shadow(color: Color.green.opacity(0.5), radius: 8, x: 0, y: 4)
+        }
+        .padding(.top, 130)
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    /// 上传失败横幅（Day18）
+    private func uploadErrorBanner(error: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "xmark.circle.fill")
+                .font(.body)
+
+            Text("上传失败: \(error)")
+                .font(.subheadline)
+                .fontWeight(.medium)
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(Color.red)
+        .padding(.top, 100)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .onAppear {
+            // 5秒后自动隐藏
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                withAnimation {
+                    locationManager.territoryUploadError = nil
+                }
+            }
+        }
     }
 
     /// 圈地状态卡片

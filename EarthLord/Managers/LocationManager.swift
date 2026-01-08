@@ -59,6 +59,17 @@ class LocationManager: NSObject, ObservableObject {
     /// 计算出的领地面积（平方米）
     @Published var calculatedArea: Double = 0
 
+    // MARK: - 上传状态属性（Day18）
+
+    /// 是否正在上传领地
+    @Published var isUploadingTerritory: Bool = false
+
+    /// 上传成功标志
+    @Published var territoryUploadSuccess: Bool = false
+
+    /// 上传错误信息
+    @Published var territoryUploadError: String? = nil
+
     // MARK: - 私有属性
 
     private let locationManager = CLLocationManager()
@@ -74,6 +85,9 @@ class LocationManager: NSObject, ObservableObject {
 
     /// 上次位置的时间戳（用于速度检测）
     private var lastLocationTimestamp: Date?
+
+    /// 开始圈地的时间（Day18，用于上传）
+    private var territoryStartTime: Date?
 
     // MARK: - 常量配置
 
@@ -187,6 +201,12 @@ class LocationManager: NSObject, ObservableObject {
         territoryValidationError = nil
         calculatedArea = 0
 
+        // 重置上传状态（Day18）
+        isUploadingTerritory = false
+        territoryUploadSuccess = false
+        territoryUploadError = nil
+        territoryStartTime = Date() // 记录开始时间
+
         // 启动定时器（每 2 秒检查一次）
         // 注意：不在这里立即添加起点，让定时器第一次回调时添加，确保有完整的 CLLocation 对象（含时间戳）
         trackingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
@@ -201,14 +221,37 @@ class LocationManager: NSObject, ObservableObject {
         print("")
         print("🛑 ========== 结束圈地 ==========")
         print("   路径点数量: \(pathCoordinates.count)")
-        print("   停止定时器")
+        print("   停止定时器并重置所有状态")
         print("================================")
 
+        // 停止追踪
         isTracking = false
         trackingTimer?.invalidate()
         trackingTimer = nil
 
-        print("✅ 圈地已结束")
+        // 清空路径数据
+        pathCoordinates = []
+        lastRecordedLocation = nil
+        pathUpdateVersion = 0
+        isPathClosed = false
+
+        // 重置速度检测数据
+        speedWarning = nil
+        isOverSpeed = false
+        lastLocationTimestamp = nil
+
+        // 重置验证状态
+        territoryValidationPassed = false
+        territoryValidationError = nil
+        calculatedArea = 0
+
+        // 重置上传状态
+        isUploadingTerritory = false
+        territoryUploadSuccess = false
+        territoryUploadError = nil
+        territoryStartTime = nil
+
+        print("✅ 圈地已结束，所有状态已重置")
     }
 
     /// 清除路径数据
@@ -342,11 +385,30 @@ class LocationManager: NSObject, ObservableObject {
             territoryValidationPassed = validationResult.isValid
             territoryValidationError = validationResult.errorMessage
 
-            // 如果验证通过，保存面积
+            // 如果验证通过，保存面积（不自动上传，等待用户确认）
             if validationResult.isValid {
                 calculatedArea = calculatePolygonArea()
+                print("✅ 领地验证通过，面积: \(String(format: "%.0f", calculatedArea))m²")
+                print("   等待用户确认登记...")
             } else {
+                // 验证失败：停止追踪，防止继续记录点
                 calculatedArea = 0
+                print("❌ 领地验证失败，自动停止圈地")
+                print("   失败原因: \(validationResult.errorMessage ?? "未知错误")")
+
+                TerritoryLogger.shared.log(
+                    "领地验证失败: \(validationResult.errorMessage ?? "未知错误")，已停止圈地",
+                    type: .error
+                )
+
+                // 延迟 3 秒后停止追踪（让用户看到错误提示）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    // 只停止追踪，保留路径数据供用户查看
+                    self.isTracking = false
+                    self.trackingTimer?.invalidate()
+                    self.trackingTimer = nil
+                    print("🛑 追踪已停止（保留路径数据）")
+                }
             }
         } else {
             print("⏭️ 闭环检测失败：距离起点 \(String(format: "%.1f", distanceToStart))m > \(closureDistanceThreshold)m")
@@ -357,42 +419,29 @@ class LocationManager: NSObject, ObservableObject {
     /// - Parameter newLocation: 新位置
     /// - Returns: true 表示速度正常，false 表示超速
     private func validateMovementSpeed(newLocation: CLLocation) -> Bool {
-        // 第一个点，直接通过
-        guard let lastTimestamp = lastLocationTimestamp,
-              let lastCoordinate = lastRecordedLocation else {
+        // ✅ 使用 GPS 原生速度（单位：米/秒）
+        // 注意：speed < 0 表示无效数据
+        guard newLocation.speed >= 0 else {
+            print("⚠️ 速度检测：GPS 速度无效，跳过")
             return true
         }
 
-        // 计算距离（米）
-        let lastLocation = CLLocation(latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude)
-        let distance = lastLocation.distance(from: newLocation)
+        // 转换为 km/h（米/秒 * 3.6 = 公里/小时）
+        let speedKmh = newLocation.speed * 3.6
 
-        // 计算时间差（秒）
-        let timeInterval = newLocation.timestamp.timeIntervalSince(lastTimestamp)
-
-        // 防止除零错误
-        guard timeInterval > 0 else {
-            print("⚠️ 速度检测：时间差为 0，跳过")
-            return true
-        }
-
-        // 计算速度（km/h）
-        let speed = (distance / timeInterval) * 3.6
-
-        print("🚗 速度检测:")
-        print("   距离: \(String(format: "%.1f", distance))m")
-        print("   时间差: \(String(format: "%.1f", timeInterval))s")
-        print("   速度: \(String(format: "%.1f", speed)) km/h")
+        print("🚗 速度检测（GPS原生）:")
+        print("   瞬时速度: \(String(format: "%.1f", speedKmh)) km/h")
+        print("   位置时间: \(newLocation.timestamp)")
 
         // 速度 > 30 km/h：严重超速，停止追踪
-        if speed > 30 {
-            speedWarning = "速度过快 (\(String(format: "%.1f", speed)) km/h)，已暂停圈地"
+        if speedKmh > 30 {
+            speedWarning = "速度过快 (\(String(format: "%.1f", speedKmh)) km/h)，已暂停圈地"
             isOverSpeed = true
-            print("❌ 严重超速 (>\(30) km/h)，停止追踪")
+            print("❌ 严重超速 (>30 km/h)，停止追踪")
 
             // 记录日志：超速停止
             TerritoryLogger.shared.log(
-                "超速 \(String(format: "%.1f", speed)) km/h，已自动停止圈地",
+                "超速 \(String(format: "%.1f", speedKmh)) km/h，已自动停止圈地",
                 type: .error
             )
 
@@ -401,14 +450,14 @@ class LocationManager: NSObject, ObservableObject {
         }
 
         // 速度 > 15 km/h：轻度超速，显示警告但继续追踪
-        if speed > 15 {
-            speedWarning = "移动速度过快 (\(String(format: "%.1f", speed)) km/h)，请慢行"
+        if speedKmh > 15 {
+            speedWarning = "移动速度过快 (\(String(format: "%.1f", speedKmh)) km/h)，请慢行"
             isOverSpeed = true
-            print("⚠️ 轻度超速 (>\(15) km/h)，显示警告")
+            print("⚠️ 轻度超速 (>15 km/h)，显示警告")
 
             // 记录日志：速度警告
             TerritoryLogger.shared.log(
-                "速度较快 \(String(format: "%.1f", speed)) km/h，请慢行",
+                "速度较快 \(String(format: "%.1f", speedKmh)) km/h，请慢行",
                 type: .warning
             )
 
@@ -601,6 +650,67 @@ class LocationManager: NSObject, ObservableObject {
         // 全部通过
         TerritoryLogger.shared.log("领地验证通过！面积: \(String(format: "%.0f", area))m²", type: .success)
         return (true, nil)
+    }
+
+    // MARK: - 领地上传（Day18）
+
+    /// 上传领地到数据库（供外部调用）
+    func uploadTerritory() {
+        // 检查必要条件
+        guard let startTime = territoryStartTime else {
+            print("⚠️ 缺少开始时间，无法上传")
+            return
+        }
+
+        guard !pathCoordinates.isEmpty else {
+            print("⚠️ 路径为空，无法上传")
+            return
+        }
+
+        guard calculatedArea > 0 else {
+            print("⚠️ 面积为0，无法上传")
+            return
+        }
+
+        // 标记正在上传
+        isUploadingTerritory = true
+        territoryUploadError = nil
+
+        print("📤 开始上传领地到数据库...")
+        TerritoryLogger.shared.log("开始上传领地到数据库", type: .info)
+
+        // 异步上传
+        Task { @MainActor in
+            do {
+                try await TerritoryManager.shared.uploadTerritory(
+                    coordinates: pathCoordinates,
+                    area: calculatedArea,
+                    startTime: startTime
+                )
+
+                // 上传成功
+                isUploadingTerritory = false
+                territoryUploadSuccess = true
+                territoryUploadError = nil
+
+                print("✅ 领地上传成功！")
+                TerritoryLogger.shared.log("领地上传成功！面积: \(Int(self.calculatedArea))m²", type: .success)
+
+                // 延迟 2 秒后自动停止追踪（让用户看到成功提示）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    self.stopPathTracking()
+                }
+
+            } catch {
+                // 上传失败
+                isUploadingTerritory = false
+                territoryUploadSuccess = false
+                territoryUploadError = error.localizedDescription
+
+                print("❌ 领地上传失败: \(error.localizedDescription)")
+                TerritoryLogger.shared.log("领地上传失败: \(error.localizedDescription)", type: .error)
+            }
+        }
     }
 }
 

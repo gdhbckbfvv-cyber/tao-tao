@@ -14,7 +14,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		4B5C03ED2EFBCCCB00CD5620 /* EarthLord.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EarthLord.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B5C03ED2EFBCCCB00CD5620 /* q.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = q.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BC3DB622F054F2300D1AF02 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -53,7 +53,7 @@
 		4B5C03EE2EFBCCCB00CD5620 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4B5C03ED2EFBCCCB00CD5620 /* EarthLord.app */,
+				4B5C03ED2EFBCCCB00CD5620 /* q.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -68,9 +68,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4B5C03EC2EFBCCCB00CD5620 /* EarthLord */ = {
+		4B5C03EC2EFBCCCB00CD5620 /* q */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4B5C03F82EFBCCCD00CD5620 /* Build configuration list for PBXNativeTarget "EarthLord" */;
+			buildConfigurationList = 4B5C03F82EFBCCCD00CD5620 /* Build configuration list for PBXNativeTarget "q" */;
 			buildPhases = (
 				4B5C03E92EFBCCCB00CD5620 /* Sources */,
 				4B5C03EA2EFBCCCB00CD5620 /* Frameworks */,
@@ -83,14 +83,14 @@
 			fileSystemSynchronizedGroups = (
 				4B5C03EF2EFBCCCB00CD5620 /* EarthLord */,
 			);
-			name = EarthLord;
+			name = q;
 			packageProductDependencies = (
 				4B89E12B2EFEC640005A302B /* Supabase */,
 				4B11F1CC2F04107B00246A90 /* GoogleSignIn */,
 				4B11F1CE2F04107B00246A90 /* GoogleSignInSwift */,
 			);
 			productName = EarthLord;
-			productReference = 4B5C03ED2EFBCCCB00CD5620 /* EarthLord.app */;
+			productReference = 4B5C03ED2EFBCCCB00CD5620 /* q.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -127,7 +127,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4B5C03EC2EFBCCCB00CD5620 /* EarthLord */,
+				4B5C03EC2EFBCCCB00CD5620 /* q */,
 			);
 		};
 /* End PBXProject section */
@@ -357,7 +357,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4B5C03F82EFBCCCD00CD5620 /* Build configuration list for PBXNativeTarget "EarthLord" */ = {
+		4B5C03F82EFBCCCD00CD5620 /* Build configuration list for PBXNativeTarget "q" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4B5C03F92EFBCCCD00CD5620 /* Debug */,

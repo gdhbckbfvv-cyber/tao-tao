@@ -17,6 +17,9 @@ struct ProfileTabView: View {
     // 语言切换相关状态
     @State private var showLanguageSheet = false
 
+    // Day18: 领地列表相关状态
+    @State private var showTerritoryList = false
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -75,6 +78,19 @@ struct ProfileTabView: View {
 
                     // 设置选项
                     VStack(spacing: 0) {
+                        // Day18: 我的领地
+                        SettingRow(
+                            icon: "flag.fill",
+                            title: "我的领地",
+                            action: {
+                                showTerritoryList = true
+                            }
+                        )
+
+                        Divider()
+                            .background(Color.white.opacity(0.1))
+                            .padding(.leading, 50)
+
                         SettingRow(
                             icon: "person.circle",
                             title: "编辑资料".localized,
@@ -253,6 +269,9 @@ struct ProfileTabView: View {
             }
             .sheet(isPresented: $showLanguageSheet) {
                 LanguageSelectionView(isPresented: $showLanguageSheet)
+            }
+            .sheet(isPresented: $showTerritoryList) {
+                TerritoryListView()
             }
             .overlay(
                 // 错误提示 Toast
