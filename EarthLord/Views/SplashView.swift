@@ -148,13 +148,13 @@ struct SplashView: View {
     private func checkSession() async {
         // 模拟检查过程的文字变化
         loadingText = "正在检查登录状态..."
-        await Task.sleep(500_000_000) // 0.5秒
+        try? await Task.sleep(for: .milliseconds(500)) // 0.5秒
 
         // 调用 AuthManager 检查会话
         await authManager.checkSession()
 
         loadingText = "准备就绪"
-        await Task.sleep(500_000_000) // 0.5秒
+        try? await Task.sleep(for: .milliseconds(500)) // 0.5秒
 
         // 标记完成
         checkCompleted = true

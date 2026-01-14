@@ -32,6 +32,15 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 路径是否已闭合（Day16）
     var isPathClosed: Bool
 
+    /// 已保存的领地列表（Day19）
+    @Binding var savedTerritories: [Territory]
+
+    /// 当前用户ID（Day19：用于区分自己的领地和别人的领地）
+    var currentUserId: String
+
+    /// POI 列表（物品点标记）
+    @Binding var pois: [POI]
+
     // MARK: - UIViewRepresentable 协议
 
     /// 创建 UIView（MKMapView）
@@ -64,6 +73,12 @@ struct MapViewRepresentable: UIViewRepresentable {
     func updateUIView(_ uiView: MKMapView, context: Context) {
         // 当路径更新版本变化时，重新绘制轨迹（Day16: 传入 isPathClosed）
         context.coordinator.updateTrackingPath(on: uiView, coordinates: trackingPath, isPathClosed: isPathClosed)
+
+        // Day19: 更新已保存的领地（传入当前用户ID）
+        context.coordinator.updateSavedTerritories(on: uiView, territories: savedTerritories, currentUserId: currentUserId)
+
+        // 更新 POI 标记
+        context.coordinator.updatePOIs(on: uiView, pois: pois)
     }
 
     /// 创建协调器
@@ -186,6 +201,12 @@ struct MapViewRepresentable: UIViewRepresentable {
         /// 路径是否已闭合（用于渲染器判断颜色）Day16
         private var isPathClosed: Bool = false
 
+        /// 已保存的领地多边形覆盖物（Day19）
+        private var savedTerritoryOverlays: [String: MKPolygon] = [:] // territoryId -> MKPolygon
+
+        /// 当前用户ID（Day19：用于渲染器判断颜色）
+        private var currentUserId: String = ""
+
         /// 更新追踪路径
         /// - Parameters:
         ///   - mapView: 地图视图
@@ -239,6 +260,64 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
         }
 
+        /// 更新已保存的领地（Day19）
+        /// - Parameters:
+        ///   - mapView: 地图视图
+        ///   - territories: 已保存的领地列表
+        ///   - currentUserId: 当前用户ID（用于区分颜色）
+        func updateSavedTerritories(on mapView: MKMapView, territories: [Territory], currentUserId: String) {
+            // 更新当前用户ID（用于渲染器判断颜色）
+            self.currentUserId = currentUserId
+
+            print("🗺️ 更新已保存领地:")
+            print("   领地数量: \(territories.count)")
+            print("   当前用户ID: \(currentUserId)")
+
+            // 获取当前应该显示的领地 ID 集合
+            let currentTerritoryIds = Set(territories.map { $0.id })
+
+            // 删除不再存在的领地
+            let overlaysToRemove = savedTerritoryOverlays.filter { !currentTerritoryIds.contains($0.key) }
+            for (territoryId, overlay) in overlaysToRemove {
+                mapView.removeOverlay(overlay)
+                savedTerritoryOverlays.removeValue(forKey: territoryId)
+                print("   ➖ 删除领地: \(territoryId)")
+            }
+
+            // 添加或更新领地
+            for territory in territories {
+                let coordinates = territory.toCoordinates()
+                guard coordinates.count >= 3 else {
+                    print("   ⚠️ 领地 \(territory.id) 坐标点不足，跳过")
+                    continue
+                }
+
+                // 坐标转换：WGS-84 → GCJ-02
+                let gcj02Coordinates = CoordinateConverter.wgs84ToGcj02(coordinates)
+
+                // 如果该领地已存在，先删除旧的
+                if let oldOverlay = savedTerritoryOverlays[territory.id] {
+                    mapView.removeOverlay(oldOverlay)
+                }
+
+                // 创建新的多边形
+                let polygon = MKPolygon(coordinates: gcj02Coordinates, count: gcj02Coordinates.count)
+                polygon.title = territory.id // 使用 title 属性存储领地 ID
+                polygon.subtitle = territory.userId // 使用 subtitle 属性存储用户 ID（用于判断颜色）
+
+                // 添加到地图
+                mapView.addOverlay(polygon)
+                savedTerritoryOverlays[territory.id] = polygon
+
+                // 判断是自己的还是别人的
+                let isOwnTerritory = territory.userId.lowercased() == currentUserId.lowercased()
+                let ownerType = isOwnTerritory ? "自己" : "他人"
+                print("   ✅ 添加/更新领地: \(territory.id) (\(String(format: "%.0f", territory.area))m²) - \(ownerType)")
+            }
+
+            print("✅ 领地更新完成，当前显示 \(savedTerritoryOverlays.count) 块领地")
+        }
+
         /// 提供覆盖物渲染器（绘制轨迹样式）
         /// - Parameters:
         ///   - mapView: 地图视图
@@ -278,20 +357,126 @@ struct MapViewRepresentable: UIViewRepresentable {
             if let polygon = overlay as? MKPolygon {
                 let renderer = MKPolygonRenderer(polygon: polygon)
 
-                // 多边形样式配置
-                renderer.fillColor = UIColor.systemGreen.withAlphaComponent(0.25) // 半透明绿色填充
-                renderer.strokeColor = UIColor.systemGreen // 绿色边框
-                renderer.lineWidth = 2 // 边框宽度 2 像素
+                // Day19: 区分当前追踪路径、自己的领地、别人的领地
+                if let territoryId = polygon.title, let territoryUserId = polygon.subtitle {
+                    // 已保存的领地：根据用户ID判断颜色
+                    let isOwnTerritory = territoryUserId.lowercased() == currentUserId.lowercased()
 
-                print("🎨 渲染多边形:")
-                print("   填充色: 半透明绿色")
-                print("   边框色: 绿色")
+                    if isOwnTerritory {
+                        // 自己的领地：绿色
+                        renderer.fillColor = UIColor.systemGreen.withAlphaComponent(0.3) // 半透明绿色填充
+                        renderer.strokeColor = UIColor.systemGreen.withAlphaComponent(0.8) // 绿色边框
+                        renderer.lineWidth = 3 // 边框宽度 3 像素
+
+                        print("🎨 渲染自己的领地:")
+                        print("   领地ID: \(territoryId)")
+                        print("   填充色: 半透明绿色")
+                        print("   边框色: 绿色")
+                    } else {
+                        // 别人的领地：橙色
+                        renderer.fillColor = UIColor.systemOrange.withAlphaComponent(0.3) // 半透明橙色填充
+                        renderer.strokeColor = UIColor.systemOrange.withAlphaComponent(0.8) // 橙色边框
+                        renderer.lineWidth = 3 // 边框宽度 3 像素
+
+                        print("🎨 渲染他人的领地:")
+                        print("   领地ID: \(territoryId)")
+                        print("   填充色: 半透明橙色")
+                        print("   边框色: 橙色")
+                    }
+                } else {
+                    // 当前追踪路径（已闭环）：浅绿色
+                    renderer.fillColor = UIColor.systemGreen.withAlphaComponent(0.25) // 半透明绿色填充
+                    renderer.strokeColor = UIColor.systemGreen // 绿色边框
+                    renderer.lineWidth = 2 // 边框宽度 2 像素
+
+                    print("🎨 渲染追踪多边形:")
+                    print("   填充色: 半透明绿色")
+                    print("   边框色: 绿色")
+                }
 
                 return renderer
             }
 
             // 默认渲染器
             return MKOverlayRenderer(overlay: overlay)
+        }
+
+        // MARK: - POI 标记管理
+
+        /// 已添加的 POI 标注（用于防止重复添加）
+        private var poiAnnotations: [String: POIAnnotation] = [:]
+
+        /// 更新 POI 标记
+        func updatePOIs(on mapView: MKMapView, pois: [POI]) {
+            print("📍 更新POI标记:")
+            print("   POI数量: \(pois.count)")
+
+            // 获取当前应该显示的 POI ID 集合
+            let currentPOIIds = Set(pois.map { $0.id })
+
+            // 删除不再存在的 POI
+            let annotationsToRemove = poiAnnotations.filter { !currentPOIIds.contains($0.key) }
+            for (poiId, annotation) in annotationsToRemove {
+                mapView.removeAnnotation(annotation)
+                poiAnnotations.removeValue(forKey: poiId)
+                print("   ➖ 删除POI: \(poiId)")
+            }
+
+            // 添加新的 POI
+            for poi in pois {
+                // 如果 POI 已存在，跳过
+                if poiAnnotations[poi.id] != nil {
+                    continue
+                }
+
+                // 创建并添加标注
+                let annotation = POIAnnotation(poi: poi)
+                mapView.addAnnotation(annotation)
+                poiAnnotations[poi.id] = annotation
+                print("   ✅ 添加POI: \(poi.name) - \(poi.type.rawValue)")
+            }
+
+            print("✅ POI更新完成，当前显示 \(poiAnnotations.count) 个POI")
+        }
+
+        /// 提供标注视图（自定义POI标记样式）
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            // 如果是用户位置标注，返回 nil（使用系统默认）
+            if annotation is MKUserLocation {
+                return nil
+            }
+
+            // 如果是 POI 标注，自定义样式
+            if let poiAnnotation = annotation as? POIAnnotation {
+                let identifier = "POIAnnotation"
+                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
+
+                if annotationView == nil {
+                    annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                    annotationView?.canShowCallout = true // 允许显示气泡
+                } else {
+                    annotationView?.annotation = annotation
+                }
+
+                if let markerView = annotationView as? MKMarkerAnnotationView {
+                    // 根据 POI 状态设置颜色
+                    switch poiAnnotation.poi.status {
+                    case .undiscovered:
+                        markerView.markerTintColor = .systemGray // 灰色：未发现
+                    case .discovered:
+                        markerView.markerTintColor = .systemGreen // 绿色：已发现（有物资）
+                    case .looted:
+                        markerView.markerTintColor = .systemRed // 红色：已搜空
+                    }
+
+                    // 设置图标
+                    markerView.glyphImage = UIImage(systemName: "cube.box.fill")
+                }
+
+                return annotationView
+            }
+
+            return nil
         }
     }
 }

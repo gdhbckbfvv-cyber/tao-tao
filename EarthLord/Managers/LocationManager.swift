@@ -9,6 +9,7 @@
 import Foundation
 import CoreLocation
 import Combine
+import UIKit
 
 /// GPS 定位管理器
 class LocationManager: NSObject, ObservableObject {
@@ -70,6 +71,26 @@ class LocationManager: NSObject, ObservableObject {
     /// 上传错误信息
     @Published var territoryUploadError: String? = nil
 
+    // MARK: - 冲突检测属性（Day19）
+
+    /// 是否正在检测冲突
+    @Published var isCheckingConflict: Bool = false
+
+    /// 是否检测到领地冲突
+    @Published var hasConflict: Bool = false
+
+    /// 冲突错误信息
+    @Published var conflictError: String? = nil
+
+    /// 领地预警级别（Day19: 使用新的 5 级系统）
+    @Published var warningLevel: WarningLevel = .safe
+
+    /// 距离最近领地的距离（米）
+    @Published var distanceToNearestTerritory: Double = Double.infinity
+
+    /// 最近的领地信息
+    @Published var nearestTerritory: Territory? = nil
+
     // MARK: - 私有属性
 
     private let locationManager = CLLocationManager()
@@ -77,11 +98,23 @@ class LocationManager: NSObject, ObservableObject {
     /// 当前位置（Timer 采点用）
     private var currentLocation: CLLocation?
 
-    /// 路径追踪定时器
+    /// 最新的完整位置信息（供 ExplorationManager 使用，包含精度、速度、时间戳）
+    @Published var lastCLLocation: CLLocation?
+
+    /// 路径追踪定时器（每2秒记录一次路径点）
     private var trackingTimer: Timer?
+
+    /// 碰撞检测定时器（Day19: 每10秒检测一次预警级别）
+    private var collisionCheckTimer: Timer?
 
     /// 上次记录的位置（用于距离判断）
     private var lastRecordedLocation: CLLocationCoordinate2D?
+
+    /// 震动反馈生成器（Day19）
+    private let hapticGenerator = UIImpactFeedbackGenerator(style: .medium)
+
+    /// 上次预警级别（用于判断是否需要震动）
+    private var lastWarningLevel: WarningLevel = .safe
 
     /// 上次位置的时间戳（用于速度检测）
     private var lastLocationTimestamp: Date?
@@ -115,6 +148,10 @@ class LocationManager: NSObject, ObservableObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest // 最高精度
         locationManager.distanceFilter = 10 // 移动 10 米才更新位置
 
+        // 🆕 后台定位配置（支持后台位置上报）
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.pausesLocationUpdatesAutomatically = false
+
         // 获取当前授权状态（延迟获取，避免初始化时崩溃）
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -140,10 +177,22 @@ class LocationManager: NSObject, ObservableObject {
 
     // MARK: - 公开方法
 
-    /// 请求定位权限（使用 App 期间）
+    /// 请求定位权限（始终允许，支持后台定位）
     func requestPermission() {
         print("📍 请求定位权限...")
-        locationManager.requestWhenInUseAuthorization()
+        // 先请求 WhenInUse，然后请求 Always（iOS 要求的流程）
+        if authorizationStatus == .notDetermined {
+            locationManager.requestWhenInUseAuthorization()
+        } else if authorizationStatus == .authorizedWhenInUse {
+            // 已有 WhenInUse 权限，请求升级到 Always
+            locationManager.requestAlwaysAuthorization()
+        }
+    }
+
+    /// 请求始终定位权限（用于后台位置上报）
+    func requestAlwaysPermission() {
+        print("📍 请求始终定位权限...")
+        locationManager.requestAlwaysAuthorization()
     }
 
     /// 开始更新位置
@@ -175,15 +224,76 @@ class LocationManager: NSObject, ObservableObject {
             return
         }
 
+        // 检查当前位置是否存在
+        guard let currentCoordinate = userLocation else {
+            print("⚠️ 当前位置不可用，无法开始圈地")
+            locationError = "定位信息不可用，请稍候重试"
+            TerritoryLogger.shared.log("当前位置不可用，无法开始圈地", type: .error)
+            return
+        }
+
         print("")
         print("🎯 ========== 开始圈地 ==========")
-        print("   清空路径坐标")
-        print("   启动 2 秒定时器")
+        print("   起始点: (\(currentCoordinate.latitude), \(currentCoordinate.longitude))")
+        print("   开始检测领地冲突...")
         print("================================")
 
-        // 记录日志：开始圈地
-        TerritoryLogger.shared.log("开始圈地追踪", type: .info)
+        // Day19: 检测起始点是否在他人领地内（使用新的 CollisionDetector）
+        isCheckingConflict = true
+        hasConflict = false
+        conflictError = nil
 
+        Task { @MainActor in
+            // 加载他人的领地
+            guard let otherTerritories = try? await TerritoryManager.shared.loadOthersActiveTerritories() else {
+                print("⚠️ 无法加载他人领地，允许圈地")
+                isCheckingConflict = false
+                startTrackingAfterConflictCheck()
+                return
+            }
+
+            // 使用新的 CollisionDetector 检测起点
+            let result = CollisionDetector.checkPointCollision(
+                point: currentCoordinate,
+                territories: otherTerritories
+            )
+
+            isCheckingConflict = false
+
+            if result.warningLevel == .violation {
+                // 检测到冲突，阻止圈地
+                hasConflict = true
+                conflictError = "起始点位于他人领地内，无法在此圈地"
+
+                print("❌ 检测到领地冲突，取消圈地")
+                print("   冲突领地 ID: \(result.nearestTerritory?.id ?? "未知")")
+                TerritoryLogger.shared.log(
+                    "起始点位于他人领地内（ID: \(result.nearestTerritory?.id ?? "未知")），圈地已取消",
+                    type: .error
+                )
+
+                // 5秒后自动隐藏错误提示
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    self.hasConflict = false
+                    self.conflictError = nil
+                }
+
+                return
+            }
+
+            // 未检测到冲突，继续圈地
+            print("✅ 起点检测通过，开始圈地")
+            if result.distance != Double.infinity {
+                print("   距离最近领地: \(String(format: "%.1f", result.distance))m（级别: \(result.warningLevel.description)）")
+            }
+            TerritoryLogger.shared.log("起点碰撞检测通过，开始圈地追踪", type: .info)
+
+            startTrackingAfterConflictCheck()
+        }
+    }
+
+    /// 冲突检测通过后开始追踪（Day19）
+    private func startTrackingAfterConflictCheck() {
         // 重置路径数据
         pathCoordinates = []
         lastRecordedLocation = nil
@@ -207,13 +317,33 @@ class LocationManager: NSObject, ObservableObject {
         territoryUploadError = nil
         territoryStartTime = Date() // 记录开始时间
 
-        // 启动定时器（每 2 秒检查一次）
-        // 注意：不在这里立即添加起点，让定时器第一次回调时添加，确保有完整的 CLLocation 对象（含时间戳）
+        // 重置冲突检测状态（Day19）
+        hasConflict = false
+        conflictError = nil
+        warningLevel = .safe
+        distanceToNearestTerritory = Double.infinity
+        nearestTerritory = nil
+        lastWarningLevel = .safe
+
+        // 准备震动反馈生成器（Day19）
+        hapticGenerator.prepare()
+
+        // 启动路径追踪定时器（每 2 秒记录一次路径点）
         trackingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.recordPathPoint()
         }
 
+        // 启动碰撞检测定时器（Day19: 每 10 秒检测一次预警级别）
+        collisionCheckTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+            self?.checkCollision()
+        }
+
+        // 立即进行一次碰撞检测
+        checkCollision()
+
         print("✅ 圈地已开始，等待第一次定位...")
+        print("   路径追踪：每2秒记录一次")
+        print("   碰撞检测：每10秒检测一次")
     }
 
     /// 停止路径追踪（结束圈地）
@@ -228,6 +358,9 @@ class LocationManager: NSObject, ObservableObject {
         isTracking = false
         trackingTimer?.invalidate()
         trackingTimer = nil
+
+        // 停止碰撞检测定时器（Day19）
+        stopCollisionCheckTimer()
 
         // 清空路径数据
         pathCoordinates = []
@@ -250,6 +383,16 @@ class LocationManager: NSObject, ObservableObject {
         territoryUploadSuccess = false
         territoryUploadError = nil
         territoryStartTime = nil
+
+        // 重置冲突检测状态（Day19）
+        isCheckingConflict = false
+        hasConflict = false
+        conflictError = nil
+
+        // 重置预警状态
+        warningLevel = .safe
+        distanceToNearestTerritory = Double.infinity
+        nearestTerritory = nil
 
         print("✅ 圈地已结束，所有状态已重置")
     }
@@ -291,13 +434,137 @@ class LocationManager: NSObject, ObservableObject {
 
         let currentCoordinate = location.coordinate
 
+        // Day19: 实时路径碰撞检测（使用新的 CollisionDetector）
+        Task { @MainActor in
+            // 加载他人的领地
+            guard let otherTerritories = try? await TerritoryManager.shared.loadOthersActiveTerritories() else {
+                // 无法加载领地，继续记录点（不阻塞圈地）
+                recordPointAfterConflictCheck(coordinate: currentCoordinate, location: location)
+                return
+            }
+
+            // ✅ 改进：同时检测点的预警级别和路径冲突
+            // 先检测当前点的预警级别
+            let pointResult = CollisionDetector.checkPointCollision(
+                point: currentCoordinate,
+                territories: otherTerritories
+            )
+
+            // 更新预警状态（即使在圈地过程中也显示预警）
+            warningLevel = pointResult.warningLevel
+            distanceToNearestTerritory = pointResult.distance
+            nearestTerritory = pointResult.nearestTerritory
+
+            // 根据预警级别决定是否停止
+            if pointResult.warningLevel == .violation {
+                // 违规：立即停止圈地
+                let errorMsg = "路径进入他人领地，圈地已停止"
+
+                print("❌ 路径冲突检测：进入他人领地！")
+                print("   当前点: (\(currentCoordinate.latitude), \(currentCoordinate.longitude))")
+                print("   冲突领地 ID: \(pointResult.nearestTerritory?.id ?? "未知")")
+
+                TerritoryLogger.shared.log(
+                    "路径进入他人领地（ID: \(pointResult.nearestTerritory?.id ?? "未知")），圈地已停止",
+                    type: .error
+                )
+
+                // 触发震动反馈
+                triggerHapticFeedback(for: .violation)
+
+                // 先停止圈地（会清除冲突状态）
+                stopPathTracking()
+
+                // 再设置冲突状态（这样才不会被清除）
+                hasConflict = true
+                conflictError = errorMsg
+
+                // 5秒后自动隐藏错误提示
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    self.hasConflict = false
+                    self.conflictError = nil
+                }
+
+                return
+            }
+
+            // ✅ 如果有预警（danger/caution/notice），显示预警但继续记录
+            switch pointResult.warningLevel {
+            case .danger:
+                print("⚠️ 路径检测：危险区域，距离他人领地 \(String(format: "%.1f", pointResult.distance))m")
+                triggerHapticFeedback(for: .danger)
+            case .caution:
+                print("⚠️ 路径检测：警告区域，距离他人领地 \(String(format: "%.1f", pointResult.distance))m")
+                triggerHapticFeedback(for: .caution)
+            case .notice:
+                print("ℹ️ 路径检测：发现附近领地，距离 \(String(format: "%.1f", pointResult.distance))m")
+                triggerHapticFeedback(for: .notice)
+            case .safe:
+                // 安全，不显示预警
+                break
+            case .violation:
+                // 已经在上面处理了
+                break
+            }
+
+            // ✅ 只有在非安全区时，才检测路径穿越
+            if pointResult.warningLevel != .safe && pointResult.warningLevel != .violation {
+                // 检测路径是否穿越领地边界
+                if let lastPoint = lastRecordedLocation {
+                    let pathResult = CollisionDetector.checkPathCrossTerritory(
+                        lineStart: lastPoint,
+                        lineEnd: currentCoordinate,
+                        territories: otherTerritories
+                    )
+
+                    if pathResult.hasCollision && pathResult.crossesTerritory {
+                        // 路径穿越边界，立即停止
+                        let errorMsg = "路径穿越他人领地边界，圈地已停止"
+
+                        print("❌ 路径冲突检测：穿越领地边界！")
+                        print("   线段: (\(lastPoint.latitude), \(lastPoint.longitude)) → (\(currentCoordinate.latitude), \(currentCoordinate.longitude))")
+                        print("   冲突领地 ID: \(pathResult.conflictTerritory?.id ?? "未知")")
+
+                        TerritoryLogger.shared.log(
+                            "路径穿越他人领地边界（ID: \(pathResult.conflictTerritory?.id ?? "未知")），圈地已停止",
+                            type: .error
+                        )
+
+                        // 触发震动反馈
+                        triggerHapticFeedback(for: .violation)
+
+                        // 先停止圈地
+                        stopPathTracking()
+
+                        // 再设置冲突状态
+                        hasConflict = true
+                        conflictError = errorMsg
+
+                        // 5秒后自动隐藏错误提示
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                            self.hasConflict = false
+                            self.conflictError = nil
+                        }
+
+                        return
+                    }
+                }
+            }
+
+            // 未检测到冲突，继续记录点
+            recordPointAfterConflictCheck(coordinate: currentCoordinate, location: location)
+        }
+    }
+
+    /// 冲突检测通过后记录路径点
+    private func recordPointAfterConflictCheck(coordinate: CLLocationCoordinate2D, location: CLLocation) {
         // 如果是第一个点，直接记录
         guard let lastLocation = lastRecordedLocation else {
-            pathCoordinates.append(currentCoordinate)
-            lastRecordedLocation = currentCoordinate
-            lastLocationTimestamp = location.timestamp // Day16: 记录时间戳
+            pathCoordinates.append(coordinate)
+            lastRecordedLocation = coordinate
+            lastLocationTimestamp = location.timestamp
             pathUpdateVersion += 1
-            print("📍 记录第一个路径点: (\(currentCoordinate.latitude), \(currentCoordinate.longitude))")
+            print("📍 记录第一个路径点: (\(coordinate.latitude), \(coordinate.longitude))")
 
             // 记录日志：记录起点
             TerritoryLogger.shared.log("记录起点（第1个点）", type: .info)
@@ -305,17 +572,17 @@ class LocationManager: NSObject, ObservableObject {
         }
 
         // 计算距离（单位：米）
-        let distance = calculateDistance(from: lastLocation, to: currentCoordinate)
+        let distance = calculateDistance(from: lastLocation, to: coordinate)
 
         // 如果距离 > 10 米，记录新点
         if distance > 10 {
-            pathCoordinates.append(currentCoordinate)
-            lastRecordedLocation = currentCoordinate
-            lastLocationTimestamp = location.timestamp // Day16: 更新时间戳
+            pathCoordinates.append(coordinate)
+            lastRecordedLocation = coordinate
+            lastLocationTimestamp = location.timestamp
             pathUpdateVersion += 1
 
             print("📍 记录新路径点:")
-            print("   坐标: (\(currentCoordinate.latitude), \(currentCoordinate.longitude))")
+            print("   坐标: (\(coordinate.latitude), \(coordinate.longitude))")
             print("   距离上一点: \(String(format: "%.1f", distance))m")
             print("   总路径点数: \(pathCoordinates.count)")
 
@@ -519,7 +786,7 @@ class LocationManager: NSObject, ObservableObject {
 
     // MARK: - 自相交检测（Day17）
 
-    /// 判断两条线段是否相交（CCW 算法）
+    /// 判断两条线段是否相交（CCW 算法 + 容错机制）
     /// - Parameters:
     ///   - p1: 线段1的起点
     ///   - p2: 线段1的终点
@@ -528,23 +795,66 @@ class LocationManager: NSObject, ObservableObject {
     /// - Returns: true 表示相交
     private func segmentsIntersect(p1: CLLocationCoordinate2D, p2: CLLocationCoordinate2D,
                                     p3: CLLocationCoordinate2D, p4: CLLocationCoordinate2D) -> Bool {
+
+        // ✅ 容错阈值：如果交点距离任意端点太近，不算真正的自交（米）
+        // 这可以过滤掉 GPS 精度导致的"抖动"误判
+        let toleranceDistance: Double = 5.0
+
         /// CCW 辅助函数：判断三点是否呈逆时针方向
         /// - Parameters:
         ///   - A: 第一个点
         ///   - B: 第二个点
         ///   - C: 第三个点
         /// - Returns: 叉积 > 0 则为逆时针
-        func ccw(_ A: CLLocationCoordinate2D, _ B: CLLocationCoordinate2D, _ C: CLLocationCoordinate2D) -> Bool {
+        func ccw(_ A: CLLocationCoordinate2D, _ B: CLLocationCoordinate2D, _ C: CLLocationCoordinate2D) -> Double {
             // ⚠️ 坐标映射：longitude = X轴，latitude = Y轴
             // 叉积 = (Cy - Ay) × (Bx - Ax) - (By - Ay) × (Cx - Ax)
             let crossProduct = (C.latitude - A.latitude) * (B.longitude - A.longitude) -
                                (B.latitude - A.latitude) * (C.longitude - A.longitude)
-            return crossProduct > 0
+            return crossProduct
+        }
+
+        // ✅ 增强的 CCW 判断：引入容差避免浮点数精度问题
+        func ccwSign(_ A: CLLocationCoordinate2D, _ B: CLLocationCoordinate2D, _ C: CLLocationCoordinate2D) -> Int {
+            let cp = ccw(A, B, C)
+            let epsilon = 1e-10  // 浮点数容差
+            if abs(cp) < epsilon {
+                return 0  // 共线
+            }
+            return cp > 0 ? 1 : -1
         }
 
         // 判断逻辑：
         // ccw(p1, p3, p4) ≠ ccw(p2, p3, p4) 且 ccw(p1, p2, p3) ≠ ccw(p1, p2, p4)
-        return ccw(p1, p3, p4) != ccw(p2, p3, p4) && ccw(p1, p2, p3) != ccw(p1, p2, p4)
+        let d1 = ccwSign(p1, p3, p4)
+        let d2 = ccwSign(p2, p3, p4)
+        let d3 = ccwSign(p1, p2, p3)
+        let d4 = ccwSign(p1, p2, p4)
+
+        // 基本相交判断
+        let basicIntersect = (d1 != d2 && d1 != 0 && d2 != 0) && (d3 != d4 && d3 != 0 && d4 != 0)
+
+        if !basicIntersect {
+            return false
+        }
+
+        // ✅ 容错检查：如果线段端点距离太近，不算自交（可能是 GPS 抖动）
+        let distances = [
+            calculateDistance(from: p1, to: p3),
+            calculateDistance(from: p1, to: p4),
+            calculateDistance(from: p2, to: p3),
+            calculateDistance(from: p2, to: p4)
+        ]
+
+        let minDistance = distances.min() ?? Double.infinity
+
+        if minDistance < toleranceDistance {
+            // 距离太近，不算真正的自交
+            print("🔍 自交容错：线段距离太近（\(String(format: "%.1f", minDistance))m < \(toleranceDistance)m），忽略")
+            return false
+        }
+
+        return true
     }
 
     /// 检测路径是否自相交（画"8"字形则失败）
@@ -564,9 +874,11 @@ class LocationManager: NSObject, ObservableObject {
         // ✅ 防御性检查：确保有足够的线段
         guard segmentCount >= 2 else { return false }
 
-        // ✅ 闭环时需要跳过的首尾线段数量
-        let skipHeadCount = 2
-        let skipTailCount = 2
+        // ✅ 闭环时需要跳过的首尾线段数量（增加到3，更宽松）
+        let skipHeadCount = 3
+        let skipTailCount = 3
+
+        print("🔍 开始自交检测：共 \(segmentCount) 条线段")
 
         for i in 0..<segmentCount {
             guard i < pathSnapshot.count - 1 else { break }
@@ -574,17 +886,22 @@ class LocationManager: NSObject, ObservableObject {
             let p1 = pathSnapshot[i]
             let p2 = pathSnapshot[i + 1]
 
+            // ✅ 必须间隔至少2条线段才比较（避免相邻线段）
             let startJ = i + 2
             guard startJ < segmentCount else { continue }
 
             for j in startJ..<segmentCount {
                 guard j < pathSnapshot.count - 1 else { break }
 
-                // ✅ 跳过首尾附近线段的比较（防止正常圈地被误判为自交）
+                // ✅ 修复：正确跳过首尾线段的比较
+                // 如果 i 是前面的线段，并且 j 是后面的线段，应该跳过
+                // 因为闭环时首尾本来就应该接近
                 let isHeadSegment = i < skipHeadCount
                 let isTailSegment = j >= segmentCount - skipTailCount
 
+                // ✅ 修复逻辑：只要是首尾线段的组合就跳过
                 if isHeadSegment && isTailSegment {
+                    print("  ⏭️ 跳过首尾线段比较：线段\(i)-\(i+1) vs 线段\(j)-\(j+1)")
                     continue
                 }
 
@@ -592,12 +909,17 @@ class LocationManager: NSObject, ObservableObject {
                 let p4 = pathSnapshot[j + 1]
 
                 if segmentsIntersect(p1: p1, p2: p2, p3: p3, p4: p4) {
+                    print("❌ 检测到自交：线段\(i)-\(i+1) 与 线段\(j)-\(j+1) 相交")
+                    print("   线段1: (\(String(format: "%.6f", p1.latitude)), \(String(format: "%.6f", p1.longitude))) → (\(String(format: "%.6f", p2.latitude)), \(String(format: "%.6f", p2.longitude)))")
+                    print("   线段2: (\(String(format: "%.6f", p3.latitude)), \(String(format: "%.6f", p3.longitude))) → (\(String(format: "%.6f", p4.latitude)), \(String(format: "%.6f", p4.longitude)))")
+
                     TerritoryLogger.shared.log("自交检测: 线段\(i)-\(i+1) 与 线段\(j)-\(j+1) 相交", type: .error)
                     return true
                 }
             }
         }
 
+        print("✅ 自交检测通过：无交叉")
         TerritoryLogger.shared.log("自交检测: 无交叉 ✓", type: .info)
         return false
     }
@@ -653,6 +975,121 @@ class LocationManager: NSObject, ObservableObject {
     }
 
     // MARK: - 领地上传（Day18）
+
+    // MARK: - 碰撞检测（Day19）
+
+    /// 碰撞检测（定时器回调，每10秒检测一次）
+    private func checkCollision() {
+        guard let currentCoordinate = userLocation else {
+            print("⚠️ 碰撞检测：当前位置为空，跳过")
+            return
+        }
+
+        print("🔍 ========== 碰撞检测 ==========")
+        print("   当前位置: (\(currentCoordinate.latitude), \(currentCoordinate.longitude))")
+
+        Task { @MainActor in
+            // 加载他人的领地
+            guard let otherTerritories = try? await TerritoryManager.shared.loadOthersActiveTerritories() else {
+                print("⚠️ 无法加载他人领地，跳过检测")
+                return
+            }
+
+            // 使用新的 CollisionDetector 进行点碰撞检测
+            let result = CollisionDetector.checkPointCollision(
+                point: currentCoordinate,
+                territories: otherTerritories
+            )
+
+            // 更新预警状态
+            warningLevel = result.warningLevel
+            distanceToNearestTerritory = result.distance
+            nearestTerritory = result.nearestTerritory
+
+            // 根据预警级别采取行动
+            switch result.warningLevel {
+            case .violation:
+                // 违规：立即停止圈地
+                print("❌ 违规！立即停止圈地")
+                TerritoryLogger.shared.log(
+                    "碰撞检测：进入他人领地（ID: \(result.nearestTerritory?.id ?? "未知")），圈地已停止",
+                    type: .error
+                )
+
+                // 触发震动反馈
+                triggerHapticFeedback(for: .violation)
+
+                // 先停止圈地（会清除冲突状态）
+                stopPathTracking()
+
+                // 再设置冲突状态（这样才不会被清除）
+                hasConflict = true
+                conflictError = "进入他人领地，圈地已停止"
+
+                // 5秒后自动隐藏错误提示
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    self.hasConflict = false
+                    self.conflictError = nil
+                }
+
+            case .danger:
+                print("⚠️ 危险：距离他人领地仅 \(String(format: "%.1f", result.distance))m")
+                TerritoryLogger.shared.log(
+                    "碰撞检测：距离他人领地 \(String(format: "%.1f", result.distance))m，请注意",
+                    type: .warning
+                )
+                // 触发震动反馈
+                triggerHapticFeedback(for: .danger)
+
+            case .caution:
+                print("⚠️ 警告：距离他人领地 \(String(format: "%.1f", result.distance))m")
+                // 触发震动反馈
+                triggerHapticFeedback(for: .caution)
+
+            case .notice:
+                print("ℹ️ 提醒：发现附近领地，距离 \(String(format: "%.1f", result.distance))m")
+                // 触发震动反馈
+                triggerHapticFeedback(for: .notice)
+
+            case .safe:
+                if result.distance != Double.infinity {
+                    print("✅ 安全：距离他人领地 \(String(format: "%.1f", result.distance))m")
+                } else {
+                    print("✅ 安全：附近无他人领地")
+                }
+                // safe 级别不需要震动
+            }
+
+            print("================================")
+        }
+    }
+
+    /// 停止碰撞检测定时器（Day19）
+    private func stopCollisionCheckTimer() {
+        collisionCheckTimer?.invalidate()
+        collisionCheckTimer = nil
+        print("⏹️ 碰撞检测定时器已停止")
+    }
+
+    /// 触发震动反馈（Day19）
+    /// - Parameter level: 预警级别
+    private func triggerHapticFeedback(for level: WarningLevel) {
+        // 只有级别变化时才触发震动（避免重复震动）
+        guard level != lastWarningLevel else { return }
+
+        lastWarningLevel = level
+
+        // 准备震动生成器
+        hapticGenerator.prepare()
+
+        // 根据级别强度触发震动
+        let intensity = CGFloat(level.hapticIntensity)
+
+        if intensity > 0 {
+            hapticGenerator.impactOccurred(intensity: intensity)
+            print("📳 触发震动反馈：\(level.description)（强度: \(String(format: "%.1f", intensity))）")
+        }
+    }
 
     /// 上传领地到数据库（供外部调用）
     func uploadTerritory() {
@@ -740,6 +1177,7 @@ extension LocationManager: CLLocationManagerDelegate {
             // ⚠️ 关键：必须更新 currentLocation，Timer 需要用这个！
             self.currentLocation = location
             self.userLocation = location.coordinate
+            self.lastCLLocation = location  // 更新完整的位置信息
             self.locationError = nil
 
             print("📍 位置更新成功:")

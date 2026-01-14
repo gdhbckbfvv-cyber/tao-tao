@@ -194,7 +194,7 @@ struct TerritoryRow: View {
 
 // MARK: - 信息行视图
 
-struct InfoRow: View {
+private struct InfoRow: View {
     let icon: String
     let label: String
     let value: String
