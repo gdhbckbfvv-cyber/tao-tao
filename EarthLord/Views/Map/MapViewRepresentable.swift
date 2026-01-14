@@ -459,24 +459,50 @@ struct MapViewRepresentable: UIViewRepresentable {
                 }
 
                 if let markerView = annotationView as? MKMarkerAnnotationView {
-                    // 根据 POI 状态设置颜色
-                    switch poiAnnotation.poi.status {
+                    let poi = poiAnnotation.poi
+
+                    // 根据 POI 类型设置图标和颜色
+                    let (icon, color) = iconAndColor(for: poi.type)
+                    markerView.glyphImage = UIImage(systemName: icon)
+
+                    // 根据 POI 状态调整颜色
+                    switch poi.status {
                     case .undiscovered:
-                        markerView.markerTintColor = .systemGray // 灰色：未发现
+                        markerView.markerTintColor = color // 类型颜色
                     case .discovered:
                         markerView.markerTintColor = .systemGreen // 绿色：已发现（有物资）
                     case .looted:
-                        markerView.markerTintColor = .systemRed // 红色：已搜空
+                        markerView.markerTintColor = .systemGray.withAlphaComponent(0.5) // 半透明灰：已搜空
                     }
 
-                    // 设置图标
-                    markerView.glyphImage = UIImage(systemName: "cube.box.fill")
+                    // 显示标题
+                    markerView.titleVisibility = .adaptive
                 }
 
                 return annotationView
             }
 
             return nil
+        }
+
+        /// 根据 POI 类型返回图标和颜色
+        private func iconAndColor(for type: POIType) -> (icon: String, color: UIColor) {
+            switch type {
+            case .supermarket:
+                return ("cart.fill", .systemOrange)          // 🛒 超市 - 橙色
+            case .hospital:
+                return ("cross.case.fill", .systemRed)       // 🏥 医院 - 红色
+            case .pharmacy:
+                return ("pills.fill", .systemBlue)           // 💊 药店 - 蓝色
+            case .gasStation:
+                return ("fuelpump.fill", .systemYellow)      // ⛽ 加油站 - 黄色
+            case .factory:
+                return ("gearshape.2.fill", .systemGray)     // 🏭 工厂 - 灰色
+            case .warehouse:
+                return ("shippingbox.fill", .systemBrown)    // 📦 仓库 - 棕色
+            case .school:
+                return ("book.fill", .systemPurple)          // 🏫 学校 - 紫色
+            }
         }
     }
 }

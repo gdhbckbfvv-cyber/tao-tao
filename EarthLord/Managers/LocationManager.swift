@@ -148,8 +148,10 @@ class LocationManager: NSObject, ObservableObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest // 最高精度
         locationManager.distanceFilter = 10 // 移动 10 米才更新位置
 
-        // 🆕 后台定位配置（支持后台位置上报）
-        locationManager.allowsBackgroundLocationUpdates = true
+        // 🆕 后台定位配置
+        // 注意：allowsBackgroundLocationUpdates = true 需要在 Xcode 中启用
+        // "Background Modes" -> "Location updates" 能力，否则会崩溃
+        // locationManager.allowsBackgroundLocationUpdates = true
         locationManager.pausesLocationUpdatesAutomatically = false
 
         // 获取当前授权状态（延迟获取，避免初始化时崩溃）
