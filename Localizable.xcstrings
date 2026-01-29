@@ -17,6 +17,9 @@
     "《地球新主》需要获取您的位置\n来显示您在末日世界中的坐标" : {
 
     },
+    "/" : {
+
+    },
     "#%lld" : {
 
     },
@@ -40,6 +43,9 @@
 
     },
     "%lld 个" : {
+
+    },
+    "%lld 个建筑" : {
 
     },
     "%lld 个路径点" : {
@@ -80,16 +86,14 @@
         }
       }
     },
-    "⚠️ 警告" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "⚠️ Warning"
-          }
-        }
-      }
+    "•" : {
+
+    },
+    "+%lld" : {
+
+    },
+    "AI 生成" : {
+
     },
     "EARTH LORD" : {
       "localizations" : {
@@ -111,6 +115,9 @@
         }
       }
     },
+    "Lv.%lld" : {
+
+    },
     "m" : {
 
     },
@@ -124,6 +131,9 @@
         }
       }
     },
+    "T%lld" : {
+
+    },
     "x%lld" : {
 
     },
@@ -131,17 +141,6 @@
 
     },
     "个人" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Profile"
-          }
-        }
-      }
-    },
-    "个人中心" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -193,17 +192,6 @@
     "关闭" : {
 
     },
-    "最后确认" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Final Confirmation"
-          }
-        }
-      }
-    },
     "删除" : {
       "localizations" : {
         "en" : {
@@ -226,17 +214,6 @@
     },
     "删除后将无法恢复" : {
 
-    },
-    "删除账户" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Account"
-          }
-        }
-      }
     },
     "删除账户后，您的所有数据将被永久删除且无法恢复！\n\n这包括：\n• 个人资料\n• 游戏进度\n• 所有记录\n\n您确定要继续吗？" : {
       "extractionState" : "manual",
@@ -261,17 +238,6 @@
     "功能开发中" : {
 
     },
-    "加入时间: %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Joined: %@"
-          }
-        }
-      }
-    },
     "加载中..." : {
       "localizations" : {
         "en" : {
@@ -286,6 +252,12 @@
 
     },
     "勇敢的幸存者，你又向前迈进了一步" : {
+
+    },
+    "升级" : {
+
+    },
+    "升级建筑" : {
 
     },
     "危险等级:" : {
@@ -314,6 +286,9 @@
         }
       }
     },
+    "只能在领地范围内选择位置" : {
+
+    },
     "圈地中..." : {
       "localizations" : {
         "en" : {
@@ -328,6 +303,9 @@
 
     },
     "圈地测试" : {
+
+    },
+    "在地图上选择建筑位置" : {
 
     },
     "地图" : {
@@ -356,36 +334,11 @@
         }
       }
     },
-    "地球新主 v1.0.0" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Earth Lord v1.0.0"
-          }
-        }
-      }
-    },
-    "基本信息" : {
-
-    },
     "奖励等级" : {
 
     },
     "存储" : {
 
-    },
-    "完成" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done"
-          }
-        }
-      }
     },
     "完成注册" : {
       "localizations" : {
@@ -406,36 +359,54 @@
     "导出" : {
 
     },
+    "将 %@ 升级到 Lv.%lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "将 %1$@ 升级到 Lv.%2$lld"
+          }
+        }
+      }
+    },
     "已添加到背包" : {
 
     },
     "已被搜空" : {
 
     },
+    "已达最高等级" : {
+
+    },
+    "已选择位置" : {
+
+    },
     "已闭环" : {
 
     },
-    "帮助与反馈" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Help & Feedback"
-          }
-        }
-      }
+    "建筑" : {
+
     },
-    "幸存者" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Survivor"
-          }
-        }
-      }
+    "建筑列表" : {
+
+    },
+    "建造" : {
+
+    },
+    "建造位置" : {
+
+    },
+    "建造完成后自动激活" : {
+
+    },
+    "建造时间" : {
+
+    },
+    "建造确认" : {
+
+    },
+    "开发者工具" : {
+
     },
     "开发者工具与测试" : {
       "localizations" : {
@@ -496,6 +467,12 @@
         }
       }
     },
+    "拆除" : {
+
+    },
+    "拆除建筑" : {
+
+    },
     "授予定位权限" : {
 
     },
@@ -508,17 +485,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Explore"
-          }
-        }
-      }
-    },
-    "探索和圈占领地" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Explore and Claim Territory"
           }
         }
       }
@@ -566,6 +532,9 @@
 
     },
     "无法显示您在地图上的位置\n请在设置中允许定位权限" : {
+
+    },
+    "暂无建筑" : {
 
     },
     "暂无日志，点击【开始圈地】开始测试" : {
@@ -698,19 +667,37 @@
         }
       }
     },
+    "添加测试资源（木材/石头/金属/玻璃 各100）" : {
+
+    },
     "清空" : {
+
+    },
+    "清空背包" : {
 
     },
     "激活" : {
 
     },
+    "点击地图选择建筑位置" : {
+
+    },
     "点击搜索按钮发现周围的废墟" : {
+
+    },
+    "点击选择位置" : {
+
+    },
+    "点击顶部「建造」按钮开始建造" : {
 
     },
     "物品分类" : {
 
     },
     "物品列表" : {
+
+    },
+    "物品故事" : {
 
     },
     "登录" : {
@@ -729,30 +716,20 @@
     "确定要删除这块领地吗？" : {
 
     },
-    "确定要退出登录吗？" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Are you sure you want to sign out?"
-          }
-        }
-      }
+    "确定要拆除 %@ 吗？此操作不可撤销。" : {
+
     },
     "确认" : {
 
     },
-    "确认删除账户" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confirm Account Deletion"
-          }
-        }
-      }
+    "确认升级" : {
+
+    },
+    "确认建造" : {
+
+    },
+    "确认拆除" : {
+
     },
     "确认登记领地" : {
 
@@ -763,46 +740,10 @@
     "立即搜刮" : {
 
     },
-    "管理你的领地" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manage Your Territory"
-          }
-        }
-      }
-    },
     "累计" : {
 
     },
     "统计数据" : {
-
-    },
-    "继续" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue"
-          }
-        }
-      }
-    },
-    "编辑资料" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Profile"
-          }
-        }
-      }
-    },
-    "编辑领地" : {
 
     },
     "背包" : {
@@ -850,27 +791,11 @@
     "试试切换到其他分类" : {
 
     },
-    "语言设置" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Language"
-          }
-        }
-      }
+    "该分类下没有可用的建筑" : {
+
     },
-    "请在下方输入 \"删除\" 以确认：" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please enter \"DELETE\" below to confirm:"
-          }
-        }
-      }
+    "请输入新的领地名称" : {
+
     },
     "调试日志" : {
       "localizations" : {
@@ -892,7 +817,16 @@
         }
       }
     },
+    "资源不足" : {
+
+    },
+    "资源充足" : {
+
+    },
     "资源分段" : {
+
+    },
+    "资源消耗" : {
 
     },
     "距离他人领地 %@m" : {
@@ -907,6 +841,9 @@
           }
         }
       }
+    },
+    "路径点" : {
+
     },
     "输入邮箱获取验证码" : {
       "localizations" : {
@@ -934,38 +871,11 @@
     "追踪中" : {
 
     },
-    "退出中..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Signing Out..."
-          }
-        }
-      }
+    "选择位置" : {
+
     },
-    "退出登录" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign Out"
-          }
-        }
-      }
-    },
-    "通知设置" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notifications"
-          }
-        }
-      }
+    "重命名领地" : {
+
     },
     "重新发送验证码" : {
       "localizations" : {
@@ -1005,18 +915,10 @@
     "附近暂无兴趣点" : {
 
     },
-    "隐私与安全" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Privacy & Security"
-          }
-        }
-      }
-    },
     "需要定位权限" : {
+
+    },
+    "面积" : {
 
     },
     "预估物资" : {
@@ -1038,10 +940,7 @@
     "领地冲突" : {
 
     },
-    "领地范围" : {
-
-    },
-    "领地详情" : {
+    "领地名称" : {
 
     },
     "验证" : {

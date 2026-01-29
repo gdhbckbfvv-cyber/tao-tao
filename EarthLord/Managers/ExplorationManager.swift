@@ -803,6 +803,7 @@ class ExplorationManager: NSObject, ObservableObject {
     // MARK: - POI 搜刮方法
 
     /// 执行搜刮（用户点击"立即搜刮"）
+    /// 优先使用 AI 生成物品，失败时降级使用预设物品
     @MainActor
     func scavengePOI(_ poi: POI) async throws {
         guard let index = discoveredPOIs.firstIndex(where: { $0.id == poi.id }) else {
@@ -811,8 +812,30 @@ class ExplorationManager: NSObject, ObservableObject {
 
         print("🎁 [POI] 开始搜刮: \(poi.name)")
 
-        // 生成实际物品
-        let lootItems = generateLootItems(for: poi.type)
+        // ===== 尝试 AI 生成物品 =====
+        var lootItems: [ExplorationResult.ItemLoot]
+
+        do {
+            // 根据危险等级决定物品数量
+            let itemCount = calculateItemCount(dangerLevel: poi.dangerLevel)
+
+            print("🤖 [POI] 尝试 AI 生成 \(itemCount) 个物品...")
+
+            // 调用 AI 生成
+            lootItems = try await AIItemGenerator.shared.generateItems(
+                for: poi,
+                itemCount: itemCount
+            )
+
+            print("✅ [POI] AI 生成成功")
+
+        } catch {
+            // ===== 降级：使用预设物品 =====
+            print("⚠️ [POI] AI 生成失败: \(error.localizedDescription)")
+            print("⚠️ [POI] 降级使用预设物品")
+
+            lootItems = generateLootItems(for: poi.type)
+        }
 
         // 创建已搜空的新 POI 实例
         let lootedPOI = POI(
@@ -843,7 +866,27 @@ class ExplorationManager: NSObject, ObservableObject {
         print("✅ [POI] 搜刮完成: \(poi.name), 获得 \(lootItems.count) 种物品")
         for item in lootItems {
             let qualityStr = item.quality?.rawValue ?? "无品质"
-            print("🎁 [POI]   - \(item.itemName) x\(item.quantity) [\(qualityStr)]")
+            let rarityStr = item.rarity?.rawValue ?? "未知"
+            let aiStr = item.isAIGenerated ? "🤖" : "📦"
+            print("🎁 [POI]   \(aiStr) \(item.itemName) x\(item.quantity) [\(qualityStr)] [\(rarityStr)]")
+        }
+    }
+
+    /// 根据危险等级计算物品数量
+    private func calculateItemCount(dangerLevel: Int) -> Int {
+        switch dangerLevel {
+        case 1:
+            return Int.random(in: 1...2)
+        case 2:
+            return Int.random(in: 1...3)
+        case 3:
+            return Int.random(in: 2...3)
+        case 4:
+            return Int.random(in: 2...4)
+        case 5:
+            return Int.random(in: 3...5)
+        default:
+            return 2
         }
     }
 

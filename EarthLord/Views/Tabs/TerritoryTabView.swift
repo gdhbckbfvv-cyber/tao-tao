@@ -46,6 +46,18 @@ struct TerritoryTabView: View {
             .task {
                 await loadTerritories()
             }
+            // 监听领地更新通知
+            .onReceive(NotificationCenter.default.publisher(for: .territoryUpdated)) { _ in
+                Task {
+                    await loadTerritories()
+                }
+            }
+            // 监听领地删除通知
+            .onReceive(NotificationCenter.default.publisher(for: .territoryDeleted)) { _ in
+                Task {
+                    await loadTerritories()
+                }
+            }
         }
     }
 

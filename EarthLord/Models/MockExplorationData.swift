@@ -85,6 +85,11 @@ struct BackpackItem: Identifiable, Codable {
     let volume: Double                      // 单个物品体积（升）
     let description: String                 // 物品描述
 
+    // MARK: AI 生成物品相关字段
+    let story: String?                      // AI 生成的物品故事（可选）
+    let rarity: ItemRarity?                 // 物品稀有度（可选，AI 生成物品必有）
+    let isAIGenerated: Bool                 // 是否为 AI 生成的物品
+
     /// 总重量（千克）
     var totalWeight: Double {
         return weight * Double(quantity)
@@ -93,6 +98,35 @@ struct BackpackItem: Identifiable, Codable {
     /// 总体积（升）
     var totalVolume: Double {
         return volume * Double(quantity)
+    }
+
+    /// 向后兼容的初始化器（为现有代码保持兼容）
+    init(
+        id: String,
+        itemId: String,
+        name: String,
+        category: ItemCategory,
+        quantity: Int,
+        quality: ItemQuality?,
+        weight: Double,
+        volume: Double,
+        description: String,
+        story: String? = nil,
+        rarity: ItemRarity? = nil,
+        isAIGenerated: Bool = false
+    ) {
+        self.id = id
+        self.itemId = itemId
+        self.name = name
+        self.category = category
+        self.quantity = quantity
+        self.quality = quality
+        self.weight = weight
+        self.volume = volume
+        self.description = description
+        self.story = story
+        self.rarity = rarity
+        self.isAIGenerated = isAIGenerated
     }
 }
 
@@ -151,6 +185,33 @@ struct ExplorationResult: Codable, Equatable {
         let itemName: String                // 物品名称
         let quantity: Int                   // 数量
         let quality: ItemQuality?           // 品质（如果有）
+
+        // MARK: AI 生成物品相关字段
+        let story: String?                  // AI 生成的物品故事
+        let rarity: ItemRarity?             // 稀有度
+        let isAIGenerated: Bool             // 是否为 AI 生成
+        let category: ItemCategory?         // 物品分类（AI 生成时需要）
+
+        /// 向后兼容的初始化器
+        init(
+            itemId: String,
+            itemName: String,
+            quantity: Int,
+            quality: ItemQuality?,
+            story: String? = nil,
+            rarity: ItemRarity? = nil,
+            isAIGenerated: Bool = false,
+            category: ItemCategory? = nil
+        ) {
+            self.itemId = itemId
+            self.itemName = itemName
+            self.quantity = quantity
+            self.quality = quality
+            self.story = story
+            self.rarity = rarity
+            self.isAIGenerated = isAIGenerated
+            self.category = category
+        }
     }
 
     /// 探索错误信息
@@ -479,6 +540,34 @@ class MockExplorationData {
             maxStack: 100,
             description: "废弃塑料制品，可以用于制作容器。",
             iconName: "cylinder.fill"
+        ),
+
+        ItemDefinition(
+            id: "item_material_004",
+            name: "石头",
+            category: .material,
+            weight: 1.5,
+            volume: 1.0,
+            rarity: .common,
+            hasQuality: false,
+            stackable: true,
+            maxStack: 40,
+            description: "坚硬的石块，可用于建造基础结构。",
+            iconName: "mountain.2.fill"
+        ),
+
+        ItemDefinition(
+            id: "item_material_005",
+            name: "玻璃",
+            category: .material,
+            weight: 0.8,
+            volume: 0.6,
+            rarity: .uncommon,
+            hasQuality: false,
+            stackable: true,
+            maxStack: 30,
+            description: "从废墟中回收的玻璃碎片，可用于制造太阳能板等设施。",
+            iconName: "square.fill"
         ),
 
         // 工具

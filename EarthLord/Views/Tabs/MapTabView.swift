@@ -43,6 +43,9 @@ struct MapTabView: View {
     /// POI 列表（物品点）
     @State private var pois: [POI] = []
 
+    /// 建筑管理器（Day29：主地图显示建筑）
+    @StateObject private var buildingManager = BuildingManager.shared
+
     // MARK: - Body
 
     var body: some View {
@@ -62,7 +65,9 @@ struct MapTabView: View {
                     isPathClosed: locationManager.isPathClosed, // Day16: 传入闭环状态
                     savedTerritories: $savedTerritories, // Day19: 传入已保存的领地
                     currentUserId: currentUserId, // Day19: 传入当前用户ID
-                    pois: $pois // POI 列表（物品点）
+                    pois: $pois, // POI 列表（物品点）
+                    buildings: $buildingManager.playerBuildings, // Day29: 建筑列表
+                    buildingTemplates: buildingManager.templateDict // Day29: 建筑模板
                 )
                 .ignoresSafeArea()
             } else {

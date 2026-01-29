@@ -9,9 +9,10 @@
 import Foundation
 import CoreLocation
 import Supabase
+import Combine
 
 /// 领地管理器
-class TerritoryManager {
+class TerritoryManager: ObservableObject {
 
     // MARK: - 单例
 
@@ -598,4 +599,60 @@ class TerritoryManager {
             return (.safe, Double.infinity, nil)
         }
     }
+
+    // MARK: - 领地重命名
+
+    /// 更新领地名称
+    /// - Parameters:
+    ///   - territoryId: 领地 ID
+    ///   - newName: 新名称
+    /// - Returns: 是否成功
+    func updateTerritoryName(territoryId: String, newName: String) async -> Bool {
+        print("🏴 [领地] 重命名领地: \(territoryId) -> \(newName)")
+
+        do {
+            try await supabase
+                .from("territories")
+                .update(["name": newName])
+                .eq("id", value: territoryId)
+                .execute()
+
+            print("✅ [领地] 重命名成功")
+            return true
+        } catch {
+            print("❌ [领地] 重命名失败: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    /// 删除领地
+    /// - Parameter territoryId: 领地 ID
+    /// - Returns: 是否成功
+    func deleteTerritory(territoryId: String) async -> Bool {
+        print("🏴 [领地] 删除领地: \(territoryId)")
+
+        do {
+            try await supabase
+                .from("territories")
+                .delete()
+                .eq("id", value: territoryId)
+                .execute()
+
+            print("✅ [领地] 删除成功")
+            return true
+        } catch {
+            print("❌ [领地] 删除失败: \(error.localizedDescription)")
+            return false
+        }
+    }
+}
+
+// MARK: - 领地通知定义
+
+extension Notification.Name {
+    /// 领地已更新（名称等属性变化）
+    static let territoryUpdated = Notification.Name("territoryUpdated")
+
+    /// 领地已删除
+    static let territoryDeleted = Notification.Name("territoryDeleted")
 }

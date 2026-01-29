@@ -222,6 +222,69 @@ struct ProfileTabView: View {
                     .padding(.horizontal)
                     .padding(.top, 10)
 
+                    // 开发者测试工具（临时开放用于测试）
+                    VStack(spacing: 0) {
+                        HStack {
+                            Image(systemName: "hammer.fill")
+                                .foregroundColor(.orange)
+                            Text("开发者工具")
+                                .font(.headline)
+                                .foregroundColor(.orange)
+                            Spacer()
+                        }
+                        .padding()
+
+                        Divider()
+                            .background(Color.orange.opacity(0.3))
+
+                        // 添加测试资源按钮
+                        Button(action: {
+                            Task {
+                                let success = await InventoryManager.shared.addTestResources()
+                                print(success ? "✅ 测试资源添加成功" : "❌ 测试资源添加失败")
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("添加测试资源（木材/石头/金属/玻璃 各100）")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                                Spacer()
+                            }
+                            .padding()
+                        }
+
+                        Divider()
+                            .background(Color.orange.opacity(0.3))
+
+                        // 清空背包按钮
+                        Button(action: {
+                            Task {
+                                let success = await InventoryManager.shared.clearAllItems()
+                                print(success ? "✅ 背包已清空" : "❌ 清空背包失败")
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "trash.fill")
+                                    .foregroundColor(.red)
+                                Text("清空背包")
+                                    .font(.subheadline)
+                                    .foregroundColor(.red)
+                                Spacer()
+                            }
+                            .padding()
+                        }
+                    }
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 30)
+
                     // 版本信息
                     Text("地球新主 v1.0.0".localized)
                         .font(.caption2)
